@@ -1,0 +1,136 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .nav-link {
+    color: white;
+    transition: color 0.3s ease;
+  }
+  
+  .nav-link:hover {
+    color: black;
+  }
+  
+  /* Hero Section */
+  .hero-section {
+    background: linear-gradient(to right, #ff5757, #cb0b0b);
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+  }
+  
+  .hero-content {
+    max-width: 700px;
+    margin: auto;
+  }
+  
+  .primary-button {
+    margin-top: 20px;
+    background-color: white;
+    color: #cb0b0b;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  
+  .primary-button:hover {
+    background-color: black;
+    color: white;
+  }
+  
+  /* Section Styles */
+  .content-section {
+    padding: 60px 20px;
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #700000;
+    margin-bottom: 20px;
+  }
+  
+  /* FAQ Section */
+  .faq-section {
+    background: rgba(255, 87, 87, 0.1);
+    padding: 60px 20px;
+  }
+  
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: auto;
+  }
+  
+  .faq-card {
+    background: #ff5757;
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: left;
+    transition: 0.3s;
+  }
+  
+  .faq-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .faq-question {
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  
+  /* Permissions Section */
+  .permission-grid {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .permission-card {
+    background: #ff5757;
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 300px;
+  }
+  
+  .icon {
+    font-size: 3rem;
+    display: block;
+    margin: auto;
+    margin-bottom: 10px;
+  }
+  
+  .secondary-button {
+    margin-top: 10px;
+    background-color: white;
+    color: #ff5757;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  
+  .secondary-button:hover {
+    background-color: black;
+    color: white;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .permission-grid {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+  

@@ -1,0 +1,165 @@
+<main class="min-h-screen">
+    <!-- Hero Banner Section -->
+    <section class="relative h-[400px] bg-[#ff3e3e] overflow-hidden">
+        <div class="absolute inset-0">
+            <img 
+              src="/assets/images/img2.jpg"
+              alt="People communicating in sign language"
+              class="w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 bg-[#ff3e3e]/30"></div>
+          </div>
+      
+      <!-- Navigation -->
+      <nav class="relative z-10 container mx-auto px-4 py-4 flex justify-between items-center">
+        <a href="/" class="text-white text-2xl font-bold">
+          <span class="text-white">Naga</span>
+          <span class="text-white/90">Sabot</span>
+        </a>
+        <div class="flex gap-6">
+          <a href="#about" class="text-white hover:text-white/80 transition-colors">About</a>
+          <a href="#faqs" class="text-white hover:text-white/80 transition-colors">FAQs</a>
+          <a href="#permissions" class="text-white hover:text-white/80 transition-colors">Permissions</a>
+        </div>
+      </nav>
+    </section>
+  
+    <!-- Get Started Section -->
+    <section class="py-16 px-4 -mt-24 relative z-10">
+      <div class="max-w-4xl mx-auto">
+        <!-- Main Content Card -->
+        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          <div class="p-8 md:p-12">
+            <!-- Header -->
+            <div class="text-center mb-12">
+              <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Get Started</h1>
+              <p class="text-gray-600">
+                You can either open your storage to upload a video or grant access to your camera to record yourself
+              </p>
+            </div>
+  
+            <!-- Options Grid -->
+            <div class="grid md:grid-cols-2 gap-8">
+              <!-- Record via Camera Option -->
+              <div class="group relative bg-[#ff3e3e] rounded-2xl p-6 text-white hover:shadow-lg 
+                          transition-all duration-300 hover:-translate-y-1">
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full 
+                            blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
+                
+                <div class="relative space-y-4">
+                  <div class="inline-block p-3 bg-white/10 rounded-xl">
+                    <span class="text-4xl">📷</span>
+                  </div>
+                  
+                  <h2 class="text-2xl font-bold">Record via Camera</h2>
+                  <p class="text-white/90 leading-relaxed">
+                    Record a video directly using your camera to begin the lip-reading process. 
+                    Ensure your face is clearly visible for accurate recognition.
+                  </p>
+  
+                  <button 
+                    (click)="openCameraModal()"
+                    class="w-full mt-4 bg-white text-[#ff3e3e] px-6 py-3 rounded-xl font-bold
+                           hover:bg-opacity-90 transition-all duration-300 shadow-lg
+                           flex items-center justify-center gap-2"
+                  >
+                    <span>Start Recording</span>
+                    <span class="text-lg">📷</span>
+                  </button>
+                </div>
+              </div>
+  
+              <!-- Upload Option -->
+              <div class="group relative bg-[#ff3e3e] rounded-2xl p-6 text-white hover:shadow-lg 
+                          transition-all duration-300 hover:-translate-y-1">
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full 
+                            blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
+                
+                <div class="relative space-y-4">
+                  <div class="inline-block p-3 bg-white/10 rounded-xl">
+                    <span class="text-4xl">📤</span>
+                  </div>
+                  
+                  <h2 class="text-2xl font-bold">Upload via Device Storage</h2>
+                  <p class="text-white/90 leading-relaxed">
+                    Upload a video clip from your device storage to start the lip-reading process. 
+                    Ensure the video clearly shows the speaker's face for accurate results.
+                  </p>
+  
+                  <label 
+                    class="w-full mt-4 bg-white text-[#ff3e3e] px-6 py-3 rounded-xl font-bold
+                           hover:bg-opacity-90 transition-all duration-300 shadow-lg
+                           flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Select Video File</span>
+                    <span class="text-lg">📁</span>
+                    <input 
+                      #fileInput
+                      type="file"
+                      accept="video/*"
+                      (change)="handleFileSelection($event)"
+                      class="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  
+    <!-- Camera Modal -->
+    <div *ngIf="showCameraModal" 
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+        <!-- Modal Header -->
+        <div class="p-4 bg-[#ff3e3e] text-white flex justify-between items-center">
+          <h3 class="text-xl font-bold">Camera Recording</h3>
+          <button 
+            (click)="closeCameraModal()"
+            class="p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+  
+        <!-- Modal Body -->
+        <div class="p-6">
+          <!-- Video Preview -->
+          <video 
+            #videoElement 
+            [hidden]="!isRecording" 
+            autoplay 
+            playsinline 
+            class="w-full rounded-xl shadow-lg mb-4"
+          ></video>
+  
+          <!-- Recording Controls -->
+          <div class="flex justify-center gap-4">
+            <button 
+              *ngIf="!isRecording"
+              (click)="startCamera()"
+              class="bg-[#ff3e3e] text-white px-6 py-3 rounded-xl font-bold
+                     hover:bg-opacity-90 transition-all duration-300 shadow-lg
+                     flex items-center justify-center gap-2"
+            >
+              <span>Start Camera</span>
+              <span class="text-lg">⏺️</span>
+            </button>
+  
+            <button 
+              *ngIf="isRecording"
+              (click)="stopCamera()"
+              class="bg-[#ff3e3e] text-white px-6 py-3 rounded-xl font-bold
+                     hover:bg-opacity-90 transition-all duration-300 shadow-lg
+                     flex items-center justify-center gap-2"
+            >
+              <span>Stop Recording</span>
+              <span class="text-lg">⏹️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
