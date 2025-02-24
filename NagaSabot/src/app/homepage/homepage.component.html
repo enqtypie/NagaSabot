@@ -1,46 +1,69 @@
 <!-- home.component.html -->
 <main class="min-h-screen bg-white">
   <!-- Hero Section -->
-  <section class="relative min-h-[80vh] bg-gradient-to-br from-[#ff3e3e] via-[#ff5252] to-[#ff6b6b] text-white">
-    <!-- Decorative Elements -->
-    <div class="absolute inset-0 overflow-hidden">
-      <div class="absolute -left-32 -bottom-32 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-      <div class="absolute -right-32 -top-32 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl"></div>
-    </div>
+  <section class="relative min-h-screen pt-16 bg-gradient-to-br from-[#ff4d4d] to-[#ff7070]">
+    <div class="absolute inset-0 bg-grid-white/[0.05] bg-[length:32px_32px]"></div>
     
-    <div class="container mx-auto px-4 py-16 md:py-24">
-      <div class="grid lg:grid-cols-2 gap-16 items-center relative z-10">
-        <div class="space-y-8">
-          <h1 class="text-5xl md:text-7xl font-bold leading-tight">
-            Welcome to <span class="text-white/90">NagaSabot</span>
-          </h1>
-          <p class="text-xl md:text-2xl leading-relaxed text-white/90">
-            Breaking communication barriers in the Bikol-Naga dialect through advanced lipreading technology. 
-            Experience seamless understanding and connection like never before.
+    <div class="container mx-auto px-6 py-16">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <!-- Left Content -->
+        <div class="space-y-10 relative order-2 lg:order-1">
+          <div class="space-y-6">
+            <h1 class="text-2xl text-white/90 leading-relaxed">
+              A Web-App Bikol-Naga Dialect Lip-Reading System for Visual Speech Recognition 
+              using CNN and LSTM Algorithms.
+            </h1>
+          </div>
+          
+          <p class="text-lg text-white/80 leading-relaxed max-w-lg">
+            Experience seamless understanding with our AI-powered lipreading technology.
           </p>
-          <div class="flex gap-4">
+
+          <div class="flex gap-6">
             <button 
               (click)="navigateToTryItOut()"
-              class="group relative px-8 py-4 bg-white text-[#ff3e3e] rounded-full font-bold text-lg 
-                     hover:bg-opacity-95 shadow-lg transition-all duration-300"
+              class="group relative px-8 py-4 bg-white text-[#ff3e3e] rounded-xl font-medium
+                     hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
-              Try it now
-              <span class="absolute inset-0 rounded-full bg-white/20 group-hover:scale-110 transition-transform duration-300"></span>
+              <span class="relative z-10">Try it now</span>
+              <div class="absolute inset-0 bg-gradient-to-r from-white to-white/90 
+                          transform scale-x-0 group-hover:scale-x-100 
+                          transition-transform duration-300 origin-left"></div>
             </button>
           </div>
+
+          <!-- Decorative Element -->
+          <div class="absolute -left-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
         </div>
-        <div class="relative group">
-          <div class="absolute inset-0 bg-gradient-to-r from-[#ff3e3e]/20 to-[#ff6b6b]/20 rounded-3xl 
-                      transform rotate-3 transition-transform group-hover:rotate-6"></div>
-          <img 
-            [src]="'/assets/images/group-people-talking.jpg'"
-            alt="Diverse group of people engaged in conversation"
-            class="relative rounded-3xl shadow-2xl w-full h-auto object-cover transform -rotate-3 
-                   transition-transform group-hover:-rotate-6"
-          />
+
+        <!-- Right Image -->
+        <div class="relative group order-1 lg:order-2">
+          <!-- Background Decoration -->
+          <div class="absolute -inset-4 bg-gradient-to-r from-white/20 to-transparent 
+                      rounded-2xl blur-2xl transform group-hover:scale-105 transition-transform duration-500"></div>
+          
+          <!-- Image Container -->
+          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-transparent p-1">
+            <div class="overflow-hidden rounded-xl">
+              <img 
+                [src]="'/assets/images/group-people-talking.jpg'"
+                alt="People communicating"
+                class="w-full aspect-[4/3] object-cover transform transition-all duration-500 
+                       group-hover:scale-105"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+            </div>
+          </div>
+
+          <!-- Floating Elements -->
+          <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-[#ff6b6b]/20 rounded-full blur-2xl"></div>
+          <div class="absolute -left-4 -top-4 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
         </div>
       </div>
     </div>
+
+    <!-- Background Decorative Elements -->
+    <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
   </section>
 
   <!-- About Section -->
@@ -184,7 +207,7 @@
             </div>
             <h3 class="text-xl font-bold text-gray-900 group-hover:text-white">How accurate is it?</h3>
             <p class="text-gray-600 group-hover:text-white/90">
-              Our system achieves an average accuracy rate of 85% in controlled environments. 
+              Our system doesnt have a model yet but we plan to achieve an average accuracy rate of 85% in controlled environments. 
               Factors like lighting, camera quality, and clear pronunciation can affect accuracy. 
               We're constantly improving our algorithms for better performance.
             </p>
@@ -248,4 +271,53 @@
       </div>
     </div>
   </section>
+
+  <!-- Simplified Footer -->
+  <footer class="bg-[#ff3e3e] text-white py-16">
+    <div class="container mx-auto px-6">
+      <div class="flex flex-col items-center text-center space-y-6">
+        <div>
+          <h3 class="text-3xl font-bold mb-4">NagaSabot</h3>
+          <p class="text-white/80 max-w-md">
+            Breaking communication barriers through technology.
+          </p>
+        </div>
+        <div>
+          <p class="text-white/80">
+            Have questions? Reach out to us at support&#64;nagasabot.com
+          </p>
+        </div>
+        <div class="w-full pt-8 mt-8 border-t border-white/20 text-white/60">
+          © 2024 NagaSabot. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </footer>
 </main>
+
+<style>
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  .animate-fade-in-delay {
+    animation: fadeIn 0.8s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-delay-2 {
+    animation: fadeIn 0.8s ease-out 0.6s forwards;
+    opacity: 0;
+  }
+
+  .bg-grid-white {
+    background-image: linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
+  }
+</style>

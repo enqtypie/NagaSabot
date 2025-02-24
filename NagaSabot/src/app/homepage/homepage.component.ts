@@ -79,4 +79,8 @@ export class HomeComponent {
   navigateToTryItOut() {
     this.router.navigate(['/try-it-out']);
   }
+
+  scrollToAbout() {
+    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+  }
 }

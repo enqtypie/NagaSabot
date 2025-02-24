@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PermissionService } from '../../app/permission.service';
+import { VideoResultComponent } from '../video-result/video-result.component';
 
 interface VideoData {
   file: File;
@@ -11,8 +12,13 @@ interface VideoData {
 @Component({
   selector: 'app-try-it-out',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './try-it-out.component.html'
+  imports: [CommonModule, VideoResultComponent],
+  templateUrl: './try-it-out.component.html',
+  styles: [`
+    .mirror-mode {
+      transform: scaleX(-1);
+    }
+  `]
 })
 export class TryItOutComponent implements OnDestroy {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
@@ -31,6 +37,13 @@ export class TryItOutComponent implements OnDestroy {
   private recordingStartTime: number = 0;
   private maxRecordingDuration = 300000; // 5 minutes in milliseconds
   private recordingTimer: any;
+
+  videoResult: {
+    videoUrl: string;
+    phrase: string;
+    accuracy: number;
+    timestamp: number;
+  } | null = null;
 
   constructor(private permissionService: PermissionService) {}
 
@@ -60,10 +73,10 @@ export class TryItOutComponent implements OnDestroy {
   }
 
   // Modal Management
-  openCameraModal() {
+  async openCameraModal() {
     this.showCameraModal = true;
     this.clearError();
-    this.requestCameraAccess();
+    await this.startCamera();
   }
 
   closeCameraModal() {
@@ -90,8 +103,6 @@ export class TryItOutComponent implements OnDestroy {
 
   // Recording Management
   async startCamera() {
-    if (this.isRecording || this.isProcessing) return;
-    
     try {
       const hasPermission = await this.requestCameraAccess();
       if (!hasPermission) return;
@@ -108,9 +119,18 @@ export class TryItOutComponent implements OnDestroy {
       this.videoElement.nativeElement.srcObject = this.mediaStream;
       await this.videoElement.nativeElement.play();
       
-      this.setupRecording();
     } catch (error) {
       this.handleError('Failed to start camera', error);
+    }
+  }
+
+  startRecording() {
+    if (this.isRecording || this.isProcessing) return;
+    
+    try {
+      this.setupRecording();
+    } catch (error) {
+      this.handleError('Failed to start recording', error);
     }
   }
 
@@ -186,7 +206,7 @@ export class TryItOutComponent implements OnDestroy {
     this.clearError();
   }
 
-  private handleRecordingStop() {
+  private async handleRecordingStop() {
     this.isProcessing = true;
     try {
       const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
@@ -196,7 +216,7 @@ export class TryItOutComponent implements OnDestroy {
         timestamp: Date.now()
       };
       
-      this.processVideoData(videoData);
+      await this.processVideoData(videoData);
     } catch (error) {
       this.handleError('Failed to process recording', error);
     } finally {
@@ -240,24 +260,26 @@ export class TryItOutComponent implements OnDestroy {
   // Video Processing
   private async processVideoData(videoData: VideoData) {
     try {
-      // Here you would implement your video processing logic
-      // For example, sending to a server or processing locally
-      console.log('Processing video:', videoData);
-      
-      // Example of processing steps:
-      // 1. Validate video duration
+      // Validation checks...
       const duration = await this.getVideoDuration(videoData.url);
       if (duration > this.maxRecordingDuration) {
         throw new Error('Video duration exceeds maximum allowed length');
       }
 
-      // 2. Check file size
-      if (videoData.file.size > 100 * 1024 * 1024) { // 100MB limit
+      if (videoData.file.size > 100 * 1024 * 1024) {
         throw new Error('File size exceeds maximum allowed size');
       }
 
-      // 3. Process the video
-      // await this.yourVideoProcessingService.process(videoData);
+      // Set the video result and show it
+      this.videoResult = {
+        videoUrl: videoData.url,
+        phrase: "Sample detected phrase in Bikol-Naga",
+        accuracy: 85,
+        timestamp: videoData.timestamp
+      };
+
+      // Close camera modal and show result
+      this.showCameraModal = false;
 
     } catch (error) {
       this.handleError('Video processing failed', error);
@@ -278,5 +300,10 @@ export class TryItOutComponent implements OnDestroy {
   private handleError(message: string, error: any) {
     console.error(message, error);
     this.errorMessage = `${message}: ${error.message || 'Unknown error occurred'}`;
+  }
+
+  handleRestart() {
+    this.videoResult = null;
+    this.cleanup();
   }
 }

@@ -1,0 +1,48 @@
+<div class="bg-white rounded-xl shadow-lg overflow-hidden max-w-lg w-full">
+  <!-- Header -->
+  <div class="bg-[#ff3e3e] text-white px-4 py-3 flex justify-between items-center">
+    <h2 class="text-xl font-bold">Analysis Result</h2>
+    <button (click)="tryAgain()" class="hover:bg-white/10 p-1.5 rounded-full">
+      ✕
+    </button>
+  </div>
+  
+  <!-- Video Player -->
+  <div class="aspect-video bg-gray-900">
+    <video 
+        [src]="result.videoUrl" controls class="w-full h-full">
+    </video>
+  </div>
+
+  <!-- Results Section -->
+  <div class="p-4 space-y-4">
+    <!-- Detected Phrase -->
+    <div>
+      <h3 class="text-sm font-medium text-gray-500 mb-1">Detected Phrase</h3>
+      <p class="text-base font-medium text-gray-900 p-2 bg-gray-50 rounded-lg">
+        "{{ result.phrase }}"
+      </p>
+    </div>
+
+    <!-- Accuracy -->
+    <div>
+      <div class="flex items-center justify-between text-sm mb-1">
+        <span class="text-gray-500">Accuracy Rate</span>
+        <span class="font-bold text-[#ff3e3e]">{{ result.accuracy }}%</span>
+      </div>
+      <div class="h-1.5 bg-gray-200 rounded-full">
+        <div class="h-1.5 bg-[#ff3e3e] rounded-full transition-all duration-300"
+             [style.width]="result.accuracy + '%'">
+        </div>
+      </div>
+    </div>
+
+    <!-- Try Again Button -->
+    <button (click)="tryAgain()"
+            class="w-full bg-[#ff3e3e] text-white px-4 py-2 rounded-lg font-medium
+                   hover:bg-opacity-90 transition-all duration-300 flex items-center justify-center gap-2">
+      <span>Try Another Video</span>
+      <span>🎥</span>
+    </button>
+  </div>
+</div> 
