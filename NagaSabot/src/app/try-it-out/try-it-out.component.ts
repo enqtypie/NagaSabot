@@ -1,182 +1,85 @@
-import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PermissionService } from '../../app/permission.service';
 import { VideoResultComponent } from '../video-result/video-result.component';
-
-interface VideoData {
-  file: File;
-  url: string;
-  timestamp: number;
-}
+import { VideoService } from '../services/video.service';
 
 @Component({
   selector: 'app-try-it-out',
   standalone: true,
   imports: [CommonModule, VideoResultComponent],
   templateUrl: './try-it-out.component.html',
-  styles: [`
-    .mirror-mode {
-      transform: scaleX(-1);
-    }
-  `]
+  styleUrls: ['./try-it-out.component.css']
 })
 export class TryItOutComponent implements OnDestroy {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-  
-  // State management
-  isRecording = false;
+
   showCameraModal = false;
-  isProcessing = false;
-  errorMessage: string | null = null;
-  
-  // Media handling
+  isRecording = false;
+  isModalClosing = false;
+  videoBlob: Blob | null = null;
   private mediaStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
-  private recordedChunks: Blob[] = [];
-  private recordingStartTime: number = 0;
-  private maxRecordingDuration = 300000; // 5 minutes in milliseconds
-  private recordingTimer: any;
+  private chunks: Blob[] = [];
 
-  videoResult: {
-    videoUrl: string;
-    phrase: string;
-    accuracy: number;
-    timestamp: number;
-  } | null = null;
+  constructor(private videoService: VideoService) {}
 
-  constructor(private permissionService: PermissionService) {}
-
-  ngOnDestroy() {
-    this.cleanup();
-  }
-
-  private cleanup() {
-    this.stopRecording();
-    this.clearError();
-    this.resetState();
-  }
-
-  private resetState() {
-    this.isRecording = false;
-    this.isProcessing = false;
-    this.recordedChunks = [];
-    this.recordingStartTime = 0;
-    if (this.recordingTimer) {
-      clearTimeout(this.recordingTimer);
-      this.recordingTimer = null;
-    }
-  }
-
-  private clearError() {
-    this.errorMessage = null;
-  }
-
-  // Modal Management
   async openCameraModal() {
     this.showCameraModal = true;
-    this.clearError();
-    await this.startCamera();
+    try {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      this.videoElement.nativeElement.srcObject = this.mediaStream;
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      alert('Unable to access camera. Please make sure you have granted camera permissions.');
+      this.closeCameraModal();
+    }
   }
 
   closeCameraModal() {
-    this.cleanup();
-    this.showCameraModal = false;
-  }
-
-  // Camera Permissions and Setup
-  private async requestCameraAccess(): Promise<boolean> {
-    try {
-      if (!this.permissionService.hasCameraPermission()) {
-        const granted = await this.permissionService.requestCameraPermission();
-        if (!granted) {
-          this.errorMessage = 'Camera permission is required for recording.';
-          return false;
-        }
-      }
-      return true;
-    } catch (error) {
-      this.handleError('Failed to get camera permission', error);
-      return false;
-    }
-  }
-
-  // Recording Management
-  async startCamera() {
-    try {
-      const hasPermission = await this.requestCameraAccess();
-      if (!hasPermission) return;
-
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        },
-        audio: true
-      });
-
-      this.videoElement.nativeElement.srcObject = this.mediaStream;
-      await this.videoElement.nativeElement.play();
-      
-    } catch (error) {
-      this.handleError('Failed to start camera', error);
-    }
+    this.isModalClosing = true;
+    setTimeout(() => {
+      this.showCameraModal = false;
+      this.isModalClosing = false;
+      this.stopCamera();
+    }, 300);
   }
 
   startRecording() {
-    if (this.isRecording || this.isProcessing) return;
-    
-    try {
-      this.setupRecording();
-    } catch (error) {
-      this.handleError('Failed to start recording', error);
-    }
-  }
-
-  private setupRecording() {
     if (!this.mediaStream) return;
 
-    try {
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, {
-        mimeType: 'video/webm;codecs=vp8,opus'
-      });
+    this.chunks = [];
+    this.isRecording = true;
+    this.mediaRecorder = new MediaRecorder(this.mediaStream);
 
-      this.mediaRecorder.ondataavailable = this.handleDataAvailable.bind(this);
-      this.mediaRecorder.onstart = this.handleRecordingStart.bind(this);
-      this.mediaRecorder.onstop = this.handleRecordingStop.bind(this);
-      
-      // Fixed: Handle the error event with the DOMException
-      this.mediaRecorder.onerror = (event: Event) => {
-        const error = event instanceof ErrorEvent ? event.error : new DOMException('Unknown recording error');
-        this.handleError('Recording error', error);
-        this.stopRecording();
-      };
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.chunks.push(event.data);
+      }
+    };
 
-      this.mediaRecorder.start(1000); // Collect data every second
-      this.isRecording = true;
+    this.mediaRecorder.onstop = () => {
+      this.videoBlob = new Blob(this.chunks, { type: 'video/webm' });
+      this.closeCameraModal();
+    };
 
-      // Set maximum recording duration
-      this.recordingTimer = setTimeout(() => {
-        if (this.isRecording) {
-          this.stopRecording();
-        }
-      }, this.maxRecordingDuration);
+    this.mediaRecorder.start();
+  }
 
-    } catch (error) {
-      this.handleError('Failed to setup recording', error);
+  stopRecording() {
+    if (this.isRecording && this.mediaRecorder) {
+      this.mediaRecorder.stop();
+      this.isRecording = false;
+      this.closeCameraModal();
     }
   }
 
   stopCamera() {
-    this.stopRecording();
-  }
-
-  private stopRecording() {
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
-    }
-
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
       this.mediaStream = null;
@@ -185,125 +88,23 @@ export class TryItOutComponent implements OnDestroy {
     if (this.videoElement?.nativeElement) {
       this.videoElement.nativeElement.srcObject = null;
     }
+  }
 
-    this.isRecording = false;
-    if (this.recordingTimer) {
-      clearTimeout(this.recordingTimer);
-      this.recordingTimer = null;
+  handleFileSelection(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.videoBlob = input.files[0];
     }
-  }
-
-  // Recording Event Handlers
-  private handleDataAvailable(event: BlobEvent) {
-    if (event.data && event.data.size > 0) {
-      this.recordedChunks.push(event.data);
-    }
-  }
-
-  private handleRecordingStart() {
-    this.recordingStartTime = Date.now();
-    this.isRecording = true;
-    this.clearError();
-  }
-
-  private async handleRecordingStop() {
-    this.isProcessing = true;
-    try {
-      const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
-      const videoData: VideoData = {
-        file: new File([blob], `recording-${Date.now()}.webm`, { type: 'video/webm' }),
-        url: URL.createObjectURL(blob),
-        timestamp: Date.now()
-      };
-      
-      await this.processVideoData(videoData);
-    } catch (error) {
-      this.handleError('Failed to process recording', error);
-    } finally {
-      this.isProcessing = false;
-    }
-  }
-
-  // File Upload Handling
-  async handleFileSelection(event: Event) {
-    this.clearError();
-    this.isProcessing = true;
-    
-    try {
-      const input = event.target as HTMLInputElement;
-      if (!input.files || !input.files[0]) {
-        throw new Error('No file selected');
-      }
-
-      const file = input.files[0];
-      if (!file.type.startsWith('video/')) {
-        throw new Error('Please select a valid video file');
-      }
-
-      const videoData: VideoData = {
-        file: file,
-        url: URL.createObjectURL(file),
-        timestamp: Date.now()
-      };
-
-      await this.processVideoData(videoData);
-    } catch (error) {
-      this.handleError('Failed to process video file', error);
-    } finally {
-      this.isProcessing = false;
-      if (this.fileInput) {
-        this.fileInput.nativeElement.value = '';
-      }
-    }
-  }
-
-  // Video Processing
-  private async processVideoData(videoData: VideoData) {
-    try {
-      // Validation checks...
-      const duration = await this.getVideoDuration(videoData.url);
-      if (duration > this.maxRecordingDuration) {
-        throw new Error('Video duration exceeds maximum allowed length');
-      }
-
-      if (videoData.file.size > 100 * 1024 * 1024) {
-        throw new Error('File size exceeds maximum allowed size');
-      }
-
-      // Set the video result and show it
-      this.videoResult = {
-        videoUrl: videoData.url,
-        phrase: "Sample detected phrase in Bikol-Naga",
-        accuracy: 85,
-        timestamp: videoData.timestamp
-      };
-
-      // Close camera modal and show result
-      this.showCameraModal = false;
-
-    } catch (error) {
-      this.handleError('Video processing failed', error);
-      throw error;
-    }
-  }
-
-  private getVideoDuration(url: string): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.onloadedmetadata = () => resolve(video.duration * 1000);
-      video.onerror = () => reject('Error loading video');
-      video.src = url;
-    });
-  }
-
-  // Error Handling
-  private handleError(message: string, error: any) {
-    console.error(message, error);
-    this.errorMessage = `${message}: ${error.message || 'Unknown error occurred'}`;
   }
 
   handleRestart() {
-    this.videoResult = null;
-    this.cleanup();
+    this.videoBlob = null;
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+  }
+
+  ngOnDestroy() {
+    this.stopCamera();
   }
 }

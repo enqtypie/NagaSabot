@@ -9,6 +9,7 @@
             />
             <div class="absolute inset-0 bg-[#ff3e3e]/30"></div>
           </div>
+
     </section>
   
     <!-- Get Started Section -->
@@ -117,22 +118,28 @@
     </section>
   
     <!-- Video Result -->
-    <div *ngIf="videoResult" class="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-      <app-video-result 
-        [result]="videoResult"
-        (restart)="handleRestart()">
-      </app-video-result>
+    <div *ngIf="videoBlob" class="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
+      <div class="video-result-enter">
+        <app-video-result 
+          [videoBlob]="videoBlob"
+          (restart)="handleRestart()">
+        </app-video-result>
+      </div>
     </div>
   
     <!-- Camera Modal -->
     <div *ngIf="showCameraModal" 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
          role="dialog"
          aria-labelledby="camera-modal-title"
          aria-modal="true">
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="closeCameraModal()"></div>
+      <div class="modal-overlay absolute inset-0 bg-black/60 backdrop-blur-sm"
+           [class.closing]="isModalClosing"
+           (click)="closeCameraModal()">
+      </div>
       
-      <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden transform transition-all animate-slideUp">
+      <div class="modal-content relative bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden"
+           [class.closing]="isModalClosing">
         <!-- Modal Header -->
         <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
           <span class="text-[15px]">Camera Recording</span>
@@ -186,7 +193,7 @@
             <!-- Stop Button -->
             <button 
               *ngIf="isRecording"
-              (click)="stopCamera()"
+              (click)="stopRecording()"
               class="bg-[#ff3e3e] text-white px-6 py-3 rounded-lg font-bold
                      hover:bg-opacity-90 transition-all duration-300 shadow-lg
                      flex items-center justify-center gap-2 w-40"
@@ -194,6 +201,7 @@
               <span class="w-3 h-3 bg-white"></span>
               <span>Stop</span>
             </button>
+            
           </div>
         </div>
       </div>
