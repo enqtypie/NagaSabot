@@ -9,19 +9,6 @@
             />
             <div class="absolute inset-0 bg-[#ff3e3e]/30"></div>
           </div>
-      
-      <!-- Navigation -->
-      <nav class="relative z-10 container mx-auto px-4 py-4 flex justify-between items-center">
-        <a href="/" class="text-white text-2xl font-bold">
-          <span class="text-white">Naga</span>
-          <span class="text-white/90">Sabot</span>
-        </a>
-        <div class="flex gap-6">
-          <a href="#about" class="text-white hover:text-white/80 transition-colors">About</a>
-          <a href="#faqs" class="text-white hover:text-white/80 transition-colors">FAQs</a>
-          <a href="#permissions" class="text-white hover:text-white/80 transition-colors">Permissions</a>
-        </div>
-      </nav>
     </section>
   
     <!-- Get Started Section -->
@@ -41,66 +28,86 @@
             <!-- Options Grid -->
             <div class="grid md:grid-cols-2 gap-8">
               <!-- Record via Camera Option -->
-              <div class="group relative bg-[#ff3e3e] rounded-2xl p-6 text-white hover:shadow-lg 
-                          transition-all duration-300 hover:-translate-y-1">
+              <div class="group relative bg-[#ff3e3e] rounded-2xl p-8 text-white hover:shadow-xl 
+                          transition-all duration-300 hover:-translate-y-1 flex flex-col">
                 <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full 
                             blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
                 
-                <div class="relative space-y-4">
-                  <div class="inline-block p-3 bg-white/10 rounded-xl">
-                    <span class="text-4xl">📷</span>
+                <div class="relative flex-1 flex flex-col">
+                  <div class="space-y-6">
+                    <div class="inline-block p-4 bg-white/10 rounded-xl">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    
+                    <div class="space-y-4">
+                      <h2 class="text-2xl font-bold">Record via Camera</h2>
+                      <p class="text-white/90 leading-relaxed">
+                        Record a video directly using your camera to begin the lip-reading process. 
+                        Ensure your face is clearly visible for accurate recognition.
+                      </p>
+                    </div>
                   </div>
-                  
-                  <h2 class="text-2xl font-bold">Record via Camera</h2>
-                  <p class="text-white/90 leading-relaxed">
-                    Record a video directly using your camera to begin the lip-reading process. 
-                    Ensure your face is clearly visible for accurate recognition.
-                  </p>
   
-                  <button 
-                    (click)="openCameraModal()"
-                    class="w-full mt-4 bg-white text-[#ff3e3e] px-6 py-3 rounded-xl font-bold
-                           hover:bg-opacity-90 transition-all duration-300 shadow-lg
-                           flex items-center justify-center gap-2"
-                  >
-                    <span>Start Recording</span>
-                    <span class="text-lg">📷</span>
-                  </button>
+                  <div class="mt-auto pt-8">
+                    <button 
+                      (click)="openCameraModal()"
+                      class="w-full bg-white text-[#ff3e3e] px-6 py-3.5 rounded-xl font-bold
+                             hover:bg-opacity-90 transition-all duration-300 shadow-lg
+                             flex items-center justify-center gap-3"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Start Recording</span>
+                    </button>
+                  </div>
                 </div>
               </div>
   
               <!-- Upload Option -->
-              <div class="group relative bg-[#ff3e3e] rounded-2xl p-6 text-white hover:shadow-lg 
-                          transition-all duration-300 hover:-translate-y-1">
+              <div class="group relative bg-[#ff3e3e] rounded-2xl p-8 text-white hover:shadow-xl 
+                          transition-all duration-300 hover:-translate-y-1 flex flex-col">
                 <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full 
                             blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
                 
-                <div class="relative space-y-4">
-                  <div class="inline-block p-3 bg-white/10 rounded-xl">
-                    <span class="text-4xl">📤</span>
+                <div class="relative flex-1 flex flex-col">
+                  <div class="space-y-6">
+                    <div class="inline-block p-4 bg-white/10 rounded-xl">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    
+                    <div class="space-y-4">
+                      <h2 class="text-2xl font-bold">Upload via Device Storage</h2>
+                      <p class="text-white/90 leading-relaxed">
+                        Upload a video clip from your device storage to start the lip-reading process. 
+                        Ensure the video clearly shows the speaker's face for accurate results.
+                      </p>
+                    </div>
                   </div>
-                  
-                  <h2 class="text-2xl font-bold">Upload via Device Storage</h2>
-                  <p class="text-white/90 leading-relaxed">
-                    Upload a video clip from your device storage to start the lip-reading process. 
-                    Ensure the video clearly shows the speaker's face for accurate results.
-                  </p>
   
-                  <label 
-                    class="w-full mt-4 bg-white text-[#ff3e3e] px-6 py-3 rounded-xl font-bold
-                           hover:bg-opacity-90 transition-all duration-300 shadow-lg
-                           flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Select Video File</span>
-                    <span class="text-lg">📁</span>
-                    <input 
-                      #fileInput
-                      type="file"
-                      accept="video/*"
-                      (change)="handleFileSelection($event)"
-                      class="hidden"
-                    />
-                  </label>
+                  <div class="mt-auto pt-8">
+                    <label 
+                      class="w-full bg-white text-[#ff3e3e] px-6 py-3.5 rounded-xl font-bold
+                             hover:bg-opacity-90 transition-all duration-300 shadow-lg
+                             flex items-center justify-center gap-3 cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <span>Select Video File</span>
+                      <input 
+                        #fileInput
+                        type="file"
+                        accept="video/*"
+                        (change)="handleFileSelection($event)"
+                        class="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -119,14 +126,20 @@
   
     <!-- Camera Modal -->
     <div *ngIf="showCameraModal" 
-         class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full overflow-hidden">
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+         role="dialog"
+         aria-labelledby="camera-modal-title"
+         aria-modal="true">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="closeCameraModal()"></div>
+      
+      <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden transform transition-all animate-slideUp">
         <!-- Modal Header -->
-        <div class="bg-[#ff3e3e] text-white px-6 py-4 flex justify-between items-center">
-          <h3 class="text-xl font-bold">Camera Recording</h3>
+        <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
+          <span class="text-[15px]">Camera Recording</span>
           <button 
             (click)="closeCameraModal()"
-            class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            class="text-white/90 hover:text-white transition-colors"
+            aria-label="Close modal"
           >
             ✕
           </button>
@@ -152,6 +165,11 @@
 
         <!-- Controls -->
         <div class="p-6 bg-gray-50">
+          <!-- Guidance Message -->
+          <p class="text-gray-600 text-center mb-4 text-sm">
+            Please ensure your lips are clearly visible in the camera view
+          </p>
+          
           <div class="flex justify-center gap-4">
             <!-- Record Button -->
             <button 
