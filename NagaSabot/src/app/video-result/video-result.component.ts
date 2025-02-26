@@ -34,10 +34,10 @@ export class VideoResultComponent implements OnInit {
   }
 
   private uploadVideo() {
-    // Create local preview URL
+    // create local preview url
     this.result.videoUrl = URL.createObjectURL(this.videoBlob);
     
-    // Create file and upload
+    // create file and upload
     const file = new File([this.videoBlob], 'recorded-video.webm', { type: 'video/webm' });
     
     this.videoService.uploadVideo(file).subscribe({

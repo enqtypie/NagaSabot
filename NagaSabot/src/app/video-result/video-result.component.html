@@ -1,6 +1,6 @@
 <div class="flex justify-center items-center p-4">
   <div class="bg-white rounded-xl shadow-lg overflow-hidden max-w-md w-full">
-    <!-- Header -->
+    <!-- header -->
     <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
       <span class="text-[15px]">Analysis Result</span>
       <button 
@@ -12,16 +12,16 @@
       </button>
     </div>
     
-    <!-- Video Player -->
+    <!-- video player -->
     <div class="aspect-video bg-gray-900">
       <video 
           [src]="result.videoUrl" controls class="w-full h-full">
       </video>
     </div>
 
-    <!-- Results Section -->
+    <!-- results section -->
     <div class="p-3 space-y-3">
-      <!-- Detected Phrase -->
+      <!-- detected phrase -->
       <div>
         <h3 class="text-sm font-medium text-gray-500 mb-1">Detected Phrase</h3>
         <p class="text-base font-medium text-gray-900 p-2 bg-gray-50 rounded-lg">
@@ -29,7 +29,7 @@
         </p>
       </div>
 
-      <!-- Accuracy -->
+      <!-- accuracy -->
       <div>
         <div class="flex items-center justify-between text-sm mb-1">
           <span class="text-gray-500">Accuracy Rate</span>
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <!-- Try Again Button -->
+      <!-- try again button -->
       <button (click)="tryAgain()"
               class="w-full bg-[#ff3e3e] text-white px-4 py-2 rounded-lg font-medium
                      hover:bg-opacity-90 transition-all duration-300 flex items-center justify-center gap-2">

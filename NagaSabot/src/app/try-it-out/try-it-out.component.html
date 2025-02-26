@@ -1,5 +1,5 @@
 <main class="min-h-screen">
-    <!-- Hero Banner Section -->
+    <!-- banner -->
     <section class="relative h-[400px] bg-[#ff3e3e] overflow-hidden">
         <div class="absolute inset-0">
             <img 
@@ -12,13 +12,13 @@
 
     </section>
   
-    <!-- Get Started Section -->
+    <!-- get started -->
     <section class="py-16 px-4 -mt-24 relative z-10">
       <div class="max-w-4xl mx-auto">
-        <!-- Main Content Card -->
+        <!-- main content -->
         <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
           <div class="p-8 md:p-12">
-            <!-- Header -->
+            <!-- header -->
             <div class="text-center mb-12">
               <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Get Started</h1>
               <p class="text-gray-600">
@@ -26,9 +26,9 @@
               </p>
             </div>
   
-            <!-- Options Grid -->
+            <!-- options -->
             <div class="grid md:grid-cols-2 gap-8">
-              <!-- Record via Camera Option -->
+              <!-- camera option -->
               <div class="group relative bg-[#ff3e3e] rounded-2xl p-8 text-white hover:shadow-xl 
                           transition-all duration-300 hover:-translate-y-1 flex flex-col">
                 <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full 
@@ -67,7 +67,7 @@
                 </div>
               </div>
   
-              <!-- Upload Option -->
+              <!-- upload option -->
               <div class="group relative bg-[#ff3e3e] rounded-2xl p-8 text-white hover:shadow-xl 
                           transition-all duration-300 hover:-translate-y-1 flex flex-col">
                 <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full 
@@ -117,7 +117,7 @@
       </div>
     </section>
   
-    <!-- Video Result -->
+    <!-- video result -->
     <div *ngIf="videoBlob" class="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
       <div class="video-result-enter">
         <app-video-result 
@@ -127,7 +127,7 @@
       </div>
     </div>
   
-    <!-- Camera Modal -->
+    <!-- camera modal -->
     <div *ngIf="showCameraModal" 
          class="fixed inset-0 z-50 flex items-center justify-center p-4"
          role="dialog"
@@ -140,7 +140,7 @@
       
       <div class="modal-content relative bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden"
            [class.closing]="isModalClosing">
-        <!-- Modal Header -->
+        <!-- modal header -->
         <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
           <span class="text-[15px]">Camera Recording</span>
           <button 
@@ -152,7 +152,7 @@
           </button>
         </div>
 
-        <!-- Camera Preview -->
+        <!-- camera preview -->
         <div class="relative bg-black aspect-video">
           <video 
             #videoElement 
@@ -161,7 +161,7 @@
             class="w-full h-full object-cover mirror-mode"
           ></video>
 
-          <!-- Recording Indicator -->
+          <!-- recording indicator -->
           <div *ngIf="isRecording" 
                class="absolute top-4 left-4 flex items-center gap-2 bg-black/50 
                       text-white px-3 py-1.5 rounded-lg text-sm">
@@ -170,15 +170,15 @@
           </div>
         </div>
 
-        <!-- Controls -->
+        <!-- controls -->
         <div class="p-6 bg-gray-50">
-          <!-- Guidance Message -->
+          <!-- guidance message -->
           <p class="text-gray-600 text-center mb-4 text-sm">
             Please ensure your lips are clearly visible in the camera view
           </p>
           
           <div class="flex justify-center gap-4">
-            <!-- Record Button -->
+            <!-- record button -->
             <button 
               *ngIf="!isRecording"
               (click)="startRecording()"
@@ -190,7 +190,7 @@
               <span>Record</span>
             </button>
 
-            <!-- Stop Button -->
+            <!-- stop button -->
             <button 
               *ngIf="isRecording"
               (click)="stopRecording()"
