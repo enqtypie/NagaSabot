@@ -1,5 +1,5 @@
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { importProvidersFrom, ApplicationConfig } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { provideRouter } from '@angular/router';
@@ -9,7 +9,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideAnimations(),
-    provideHttpClient(),
+    provideHttpClient(withFetch()),
     importProvidersFrom(MatIconModule)
   ]
 };

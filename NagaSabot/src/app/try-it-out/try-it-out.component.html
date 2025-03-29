@@ -138,7 +138,7 @@
            (click)="closeCameraModal()">
       </div>
       
-      <div class="modal-content relative bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden"
+      <div class="modal-content relative bg-white rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden"
            [class.closing]="isModalClosing">
         <!-- modal header -->
         <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
@@ -160,6 +160,12 @@
             playsinline 
             class="w-full h-full object-cover mirror-mode"
           ></video>
+
+          <canvas #canvas 
+                  class="absolute top-0 left-0 w-full h-full"
+                  [width]="640"
+                  [height]="360">
+          </canvas>
 
           <!-- recording indicator -->
           <div *ngIf="isRecording" 
@@ -201,7 +207,6 @@
               <span class="w-3 h-3 bg-white"></span>
               <span>Stop</span>
             </button>
-            
           </div>
         </div>
       </div>
