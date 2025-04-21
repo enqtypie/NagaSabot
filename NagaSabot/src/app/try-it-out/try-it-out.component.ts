@@ -18,6 +18,7 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   isRecording = false;
   isModalClosing = false;
   videoBlob: Blob | null = null;
+  areLipsVisible = false;
   private mediaStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private chunks: Blob[] = [];
@@ -25,6 +26,8 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   private animationFrameId: number | null = null;
   private isViewInitialized = false;
   private lastVideoTime = -1;
+  private noLipsDetectedCount = 0;
+  private readonly NO_LIPS_THRESHOLD = 10; // Number of consecutive frames without lips to consider them not visible
 
   constructor(
     private videoService: VideoService,
@@ -145,7 +148,11 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
 
           ctx.clearRect(0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
 
-          if (results.faceLandmarks) {
+          if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+            // Reset the no lips detected counter when lips are found
+            this.noLipsDetectedCount = 0;
+            this.areLipsVisible = true;
+
             for (const landmarks of results.faceLandmarks) {
               // Create a mirrored version of the landmarks
               const mirroredLandmarks = landmarks.map((point: { x: number; y: number; z: number }) => ({
@@ -175,6 +182,14 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
                 ctx.fillStyle = '#FF3030';
                 ctx.fill();
               }
+            }
+          } else {
+            // Increment the counter when no lips are detected
+            this.noLipsDetectedCount++;
+            
+            // If we haven't detected lips for several consecutive frames, consider them not visible
+            if (this.noLipsDetectedCount >= this.NO_LIPS_THRESHOLD) {
+              this.areLipsVisible = false;
             }
           }
         }
