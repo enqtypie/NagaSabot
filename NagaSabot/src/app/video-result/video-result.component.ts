@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VideoService } from '../services/video.service';
 
@@ -13,10 +13,9 @@ export interface VideoResult {
   selector: 'app-video-result',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './video-result.component.html',
-  styleUrls: ['./video-result.component.css']
+  templateUrl: './video-result.component.html'
 })
-export class VideoResultComponent implements OnInit {
+export class VideoResultComponent {
   @Input() videoBlob!: Blob;
   @Output() restart = new EventEmitter<void>();
   
@@ -27,17 +26,12 @@ export class VideoResultComponent implements OnInit {
     timestamp: Date.now()
   };
 
-  constructor(private videoService: VideoService) {}
-
-  ngOnInit() {
+  constructor(private videoService: VideoService) {
     this.uploadVideo();
   }
 
   private uploadVideo() {
-    // create local preview url
     this.result.videoUrl = URL.createObjectURL(this.videoBlob);
-    
-    // create file and upload
     const file = new File([this.videoBlob], 'recorded-video.webm', { type: 'video/webm' });
     
     this.videoService.uploadVideo(file).subscribe({
