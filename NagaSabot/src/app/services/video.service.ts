@@ -18,9 +18,9 @@ export class VideoService {
     return this.http.post<any>(`${this.apiUrl}/upload`, formData).pipe(
       map(response => ({
         videoUrl: response.videoUrl,
-        phrase: response.phrase,
-        accuracy: response.accuracy,
-        timestamp: response.timestamp
+        phrase: response.phrase || 'No phrase detected',
+        accuracy: response.accuracy || 0,
+        timestamp: response.timestamp || Date.now()
       }))
     );
   }

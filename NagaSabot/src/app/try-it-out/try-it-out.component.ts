@@ -28,6 +28,11 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   private lastVideoTime = -1;
   private noLipsDetectedCount = 0;
   private readonly NO_LIPS_THRESHOLD = 10; // Number of consecutive frames without lips to consider them not visible
+  
+  // Frame tracking
+  readonly REQUIRED_FRAMES = 30;
+  currentFrameCount = 0;
+  isFrameCollectionComplete = false;
 
   constructor(
     private videoService: VideoService,
@@ -35,11 +40,15 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   ) {}
 
   ngAfterViewInit() {
-    this.isViewInitialized = true;
-    this.initializeFaceLandmarker();
+    if (isPlatformBrowser(this.platformId)) {
+      this.isViewInitialized = true;
+      this.initializeFaceLandmarker();
+    }
   }
 
   private async initializeFaceLandmarker() {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     try {
       const { FaceLandmarker, FilesetResolver, DrawingUtils } = await import('@mediapipe/tasks-vision');
       
@@ -65,13 +74,28 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   }
 
   async openCameraModal() {
+    if (!isPlatformBrowser(this.platformId)) {
+      console.error('Camera access is only available in browser environments');
+      return;
+    }
+
+    // Reset all relevant state for a new session
+    this.currentFrameCount = 0;
+    this.isFrameCollectionComplete = false;
+    this.areLipsVisible = false;
+    this.noLipsDetectedCount = 0;
+    this.lastVideoTime = -1;
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    if (this.faceLandmarker) {
+      this.faceLandmarker = null;
+    }
+
     this.showCameraModal = true;
 
     try {
-      if (!isPlatformBrowser(this.platformId)) {
-        throw new Error('Camera access is only available in browser environments');
-      }
-
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('getUserMedia is not supported in this browser');
       }
@@ -83,26 +107,27 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
         video: { 
           width: { ideal: 640 },
           height: { ideal: 360 },
+          frameRate: { ideal: 120, max: 240 }, // Request maximum possible FPS
           facingMode: 'user',
           deviceId: videoDevices[0]?.deviceId
         }
       });
 
       await this.waitForViewInitialization();
+      if (!this.faceLandmarker) {
+        await this.initializeFaceLandmarker();
+      }
       this.videoElement.nativeElement.srcObject = this.mediaStream;
       
-      // Wait for video to be ready and playing
       await new Promise<void>((resolve) => {
         this.videoElement.nativeElement.onloadedmetadata = () => {
           this.videoElement.nativeElement.play();
-          // Set canvas size to match video
           this.canvas.nativeElement.width = this.videoElement.nativeElement.videoWidth;
           this.canvas.nativeElement.height = this.videoElement.nativeElement.videoHeight;
           resolve();
+          this.startFaceTracking(); // Only start face tracking, not recording
         };
       });
-
-      await this.startFaceTracking();
     } catch (err: any) {
       console.error('Camera error:', err);
       alert(this.getErrorMessage(err));
@@ -124,6 +149,11 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   }
 
   private async startFaceTracking() {
+    // Cancel any previous animation frame loop
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
     if (!this.faceLandmarker || !this.videoElement?.nativeElement || !this.canvas?.nativeElement) return;
 
     const ctx = this.canvas.nativeElement.getContext('2d');
@@ -153,6 +183,16 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
             this.noLipsDetectedCount = 0;
             this.areLipsVisible = true;
 
+            // Increment frame count if recording and lips are visible
+            if (this.isRecording && !this.isFrameCollectionComplete) {
+              this.currentFrameCount++;
+              if (this.currentFrameCount >= this.REQUIRED_FRAMES) {
+                this.isFrameCollectionComplete = true;
+                this.stopRecording();
+                return; // Exit the detection loop after stopping
+              }
+            }
+
             for (const landmarks of results.faceLandmarks) {
               // Create a mirrored version of the landmarks
               const mirroredLandmarks = landmarks.map((point: { x: number; y: number; z: number }) => ({
@@ -171,6 +211,7 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
               const lipPoints = FaceLandmarker.FACE_LANDMARKS_LIPS.flat();
               for (const index of lipPoints) {
                 const point = mirroredLandmarks[index];
+                if (!point) continue; // Skip if undefined
                 ctx.beginPath();
                 ctx.arc(
                   point.x * this.canvas.nativeElement.width,
@@ -197,7 +238,9 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
         console.error('Face tracking error:', error);
       }
 
-      this.animationFrameId = requestAnimationFrame(detectFaces);
+      if (!this.isFrameCollectionComplete) {
+        this.animationFrameId = requestAnimationFrame(detectFaces);
+      }
     };
 
     detectFaces();
@@ -229,27 +272,63 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
 
     this.chunks = [];
     this.isRecording = true;
-    this.mediaRecorder = new MediaRecorder(this.mediaStream);
+    this.currentFrameCount = 0;
+    this.isFrameCollectionComplete = false;
+    
+    // Configure MediaRecorder with quality settings
+    this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 2500000 // 2.5 Mbps
+    });
 
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         this.chunks.push(event.data);
+        console.log('Chunk received, size:', event.data.size);
       }
     };
 
     this.mediaRecorder.onstop = () => {
-      this.videoBlob = new Blob(this.chunks, { type: 'video/webm' });
-      this.closeCameraModal();
+      this.handleRecordingComplete();
     };
 
+    // Start MediaRecorder with no interval for best FPS
     this.mediaRecorder.start();
+    // Log the actual FPS achieved (optional, for debugging)
+    let lastFrameCount = 0;
+    let lastTime = Date.now();
+    const fpsLogger = setInterval(() => {
+      if (!this.isRecording) { clearInterval(fpsLogger); return; }
+      const now = Date.now();
+      const fps = (this.currentFrameCount - lastFrameCount) / ((now - lastTime) / 1000);
+      console.log(`Approx. FPS: ${fps.toFixed(2)}`);
+      lastFrameCount = this.currentFrameCount;
+      lastTime = now;
+    }, 1000);
+    console.log('Recording started with settings:', {
+      mimeType: this.mediaRecorder.mimeType,
+      videoBitsPerSecond: this.mediaRecorder.videoBitsPerSecond,
+      state: this.mediaRecorder.state
+    });
   }
 
   stopRecording() {
-    if (this.isRecording && this.mediaRecorder) {
+    if (!this.isRecording) return; // Guard: only stop once
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
       this.isRecording = false;
+      console.log('Recording stopped, waiting for blob...');
+      if (this.showCameraModal) {
+        this.closeCameraModal();
+      }
     }
+  }
+
+  private handleRecordingComplete() {
+    console.log('Recording complete, creating blob...');
+    this.videoBlob = new Blob(this.chunks, { type: 'video/webm' });
+    console.log('Video blob created:', this.videoBlob);
+    console.log('Video blob size:', this.videoBlob.size);
   }
 
   stopCamera() {
@@ -268,7 +347,6 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
     }
 
     if (this.faceLandmarker) {
-      this.faceLandmarker.dispose();
       this.faceLandmarker = null;
     }
   }
@@ -276,15 +354,36 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   handleFileSelection(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
+      console.log('File selected:', input.files[0]);
+      console.log('File size:', input.files[0].size);
       this.videoBlob = input.files[0];
     }
   }
 
   handleRestart() {
-    this.videoBlob = null;
+    console.log('Handling restart...');
+    if (this.videoBlob) {
+      console.log('Cleaning up video blob');
+      this.videoBlob = null;
+    }
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
     }
+    // Reset all relevant state before opening camera modal
+    this.currentFrameCount = 0;
+    this.isFrameCollectionComplete = false;
+    this.areLipsVisible = false;
+    this.noLipsDetectedCount = 0;
+    this.lastVideoTime = -1;
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    if (this.faceLandmarker) {
+      this.faceLandmarker = null;
+    }
+    // Reopen camera modal (recording will start on button click)
+    this.openCameraModal();
   }
 
   ngOnDestroy() {

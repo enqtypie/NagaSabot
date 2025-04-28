@@ -118,7 +118,7 @@
     </section>
   
     <!-- video result -->
-    <div *ngIf="videoBlob" class="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
+    <div *ngIf="videoBlob" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="video-result-enter">
         <app-video-result 
           [videoBlob]="videoBlob"
@@ -129,7 +129,7 @@
   
     <!-- camera modal -->
     <div *ngIf="showCameraModal" 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         class="fixed top-0 left-0 right-0 z-50 flex justify-center items-start min-h-screen pt-24 p-2"
          role="dialog"
          aria-labelledby="camera-modal-title"
          aria-modal="true">
@@ -138,7 +138,7 @@
            (click)="closeCameraModal()">
       </div>
       
-      <div class="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden transition-all duration-300"
+      <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden transition-all duration-300"
            [class.opacity-0]="isModalClosing">
         <!-- modal header -->
         <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
@@ -173,6 +173,13 @@
                       text-white px-3 py-1.5 rounded-lg text-sm font-['Inter']">
             <span class="animate-pulse w-2.5 h-2.5 rounded-full bg-red-500"></span>
             Recording
+          </div>
+
+          <!-- frame counter -->
+          <div *ngIf="isRecording" 
+               class="absolute top-4 right-4 bg-black/50 text-white px-3 py-1.5 
+                      rounded-lg text-sm font-['Inter']">
+            Frames: {{currentFrameCount}}/{{REQUIRED_FRAMES}}
           </div>
 
           <!-- lips visibility message -->

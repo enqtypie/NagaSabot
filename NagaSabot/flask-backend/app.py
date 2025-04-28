@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename # type: ignore
 import os
 from datetime import datetime
 import uuid
+from lipreading_model import LipReadingModel
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -20,8 +21,20 @@ if not os.path.exists(UPLOAD_FOLDER):
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
+# Initialize the lipreading model
+lipreading_model = LipReadingModel()
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# New function to get lipreading result from the model
+def get_lipreading_result(video_path):
+    try:
+        result = lipreading_model.predict(video_path)
+        return result
+    except Exception as e:
+        print(f"Error in lipreading prediction: {e}")
+        return {"phrase": "Error in lipreading", "accuracy": 0.0}
 
 @app.route('/upload', methods=['POST'])
 def upload_video():
@@ -46,15 +59,16 @@ def upload_video():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         video_file.save(filepath)
         
-        # For demo purposes, return mock lip reading results
-        # In a real application, this would be processed by your lip reading model
+        # Get lipreading result from the model
+        result = get_lipreading_result(filepath)
+        
         return jsonify({
             'message': 'Video uploaded successfully',
             'filename': unique_filename,
             'original_filename': original_filename,
             'videoUrl': f'http://localhost:5000/uploads/{unique_filename}',
-            'phrase': 'Hello, this is a test phrase',  # Mock phrase - replace with actual lip reading result
-            'accuracy': 85.5,  # Mock accuracy - replace with actual accuracy
+            'phrase': result.get('phrase', 'No phrase detected'),
+            'accuracy': float(result.get('accuracy', 0.0)),
             'timestamp': datetime.now().timestamp()
         }), 200
         
@@ -74,4 +88,5 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
