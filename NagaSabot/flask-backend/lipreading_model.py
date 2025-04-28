@@ -58,7 +58,7 @@ def is_mouth_open(face_landmarks, threshold=0.018):
 class LipReadingModel:
     def __init__(self):
         # Load the model from the specified file
-        self.model = tf.keras.models.load_model('nagsabot_full_model_onlytwophrase.keras')
+        # self.model = tf.keras.models.load_model('nagsabot_full_model_onlytwophrase.keras')
         # Initialize MediaPipe Face Mesh
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
@@ -190,22 +190,23 @@ class LipReadingModel:
                 print("No speech detected (mouth mostly closed)")
                 return {"phrase": "No speech detected", "accuracy": 0.0}
 
-            # Convert to numpy array and normalize to [0,1]
-            input_data = np.array(frames_buffer[:NUM_FRAMES], dtype=np.float32) / 255.0
-            # Reshape to match model input shape
-            input_data = input_data.reshape(1, NUM_FRAMES, HEIGHT, WIDTH, CHANNELS)
-            print(f"Input data shape: {input_data.shape}")
-            
-            # Make prediction
-            prediction = self.model.predict(input_data, verbose=0)[0]
-            predicted_class = np.argmax(prediction)
-            confidence = prediction[predicted_class]
-            print(f"Prediction made: {BIKOL_NAGA_PHRASES[predicted_class]} with confidence {confidence}")
-            
-            return {
-                "phrase": BIKOL_NAGA_PHRASES[predicted_class],
-                "accuracy": confidence
-            }
+            # # Convert to numpy array and normalize to [0,1]
+            # input_data = np.array(frames_buffer[:NUM_FRAMES], dtype=np.float32) / 255.0
+            # # Reshape to match model input shape
+            # input_data = input_data.reshape(1, NUM_FRAMES, HEIGHT, WIDTH, CHANNELS)
+            # print(f"Input data shape: {input_data.shape}")
+            # 
+            # # Make prediction
+            # prediction = self.model.predict(input_data, verbose=0)[0]
+            # predicted_class = np.argmax(prediction)
+            # confidence = prediction[predicted_class]
+            # print(f"Prediction made: {BIKOL_NAGA_PHRASES[predicted_class]} with confidence {confidence}")
+            # 
+            # return {
+            #     "phrase": BIKOL_NAGA_PHRASES[predicted_class],
+            #     "accuracy": confidence
+            # }
+            return {"phrase": "Model not loaded", "accuracy": 0.0}
         except Exception as e:
             print(f"Error in predict: {e}")
             import traceback
