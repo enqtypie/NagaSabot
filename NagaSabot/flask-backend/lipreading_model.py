@@ -12,7 +12,7 @@ except ImportError:
     gdown = None
 
 MODEL_PATH = "nagsabot_full_model_onlytwophrase.keras"
-MODEL_URL = "https://drive.google.com/file/d/1Ubje08hb0aKAZLU5xhw3QTUv5UcUVcpA/view?usp=drive_link"  # Direct download link for Google Drive file
+MODEL_URL = "https://drive.google.com/uc?id=1Ubje08hb0aKAZLU5xhw3QTUv5UcUVcpA"  # Direct download link for Google Drive file
 
 def download_model():
     if not os.path.exists(MODEL_PATH):
