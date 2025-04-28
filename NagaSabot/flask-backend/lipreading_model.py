@@ -11,22 +11,19 @@ try:
 except ImportError:
     gdown = None
 
-MODEL_PATH = "nagsabot_full_model_onlytwophrase.keras"
-MODEL_URL = "https://drive.google.com/uc?id=1Ubje08hb0aKAZLU5xhw3QTUv5UcUVcpA"  # Direct download link for Google Drive file
+# MODEL_PATH = "nagsabot_full_model_onlytwophrase.keras"
+# MODEL_URL = "https://drive.google.com/uc?id=1Ubje08hb0aKAZLU5xhw3QTUv5UcUVcpA"  # Direct download link for Google Drive file
 
 def download_model():
-    if not os.path.exists(MODEL_PATH):
-        print("Model file not found, downloading...")
-        if gdown:
-            gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
-        else:
-            print("gdown not installed. Please install it with 'pip install gdown'.")
-            raise ImportError("gdown is required to download the model from Google Drive.")
-        print("Model downloaded.")
-    else:
-        print("Model file already exists, skipping download.")
-
-download_model()
+    # if not os.path.exists(MODEL_PATH):
+    print("Model file not found, downloading...")
+    if gdown:
+        # gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
+        print("gdown not installed. Please install it with 'pip install gdown'.")
+        raise ImportError("gdown is required to download the model from Google Drive.")
+    print("Model downloaded.")
+    # else:
+    #     print("Model file already exists, skipping download.")
 
 # Constants for the lip reading model
 NUM_FRAMES = 30  # Changed from 75 to 30 frames per sample
