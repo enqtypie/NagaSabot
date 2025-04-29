@@ -27,15 +27,16 @@ export class PermissionService {
 
   async requestStoragePermission(): Promise<boolean> {
     try {
-      const [fileHandle] = await (window as any).chooseFileSystemEntries({
-        type: 'open-file',
-        accepts: [
+      const [fileHandle] = await (window as any).showOpenFilePicker({
+        types: [
           {
             description: 'Videos',
-            mimeTypes: ['video/*'],
-            extensions: ['.mp4', '.webm', '.ogg']
+            accept: {
+              'video/*': ['.mp4', '.webm', '.ogg']
+            }
           }
-        ]
+        ],
+        multiple: false
       });
       this.storagePermission.next(true);
       return true;
