@@ -176,6 +176,8 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
           await this.videoElement.nativeElement.play();
         }
 
+        this.updateCanvasSize();
+
         if (this.videoElement.nativeElement.currentTime !== this.lastVideoTime) {
           this.lastVideoTime = this.videoElement.nativeElement.currentTime;
           const video = this.videoElement.nativeElement;
@@ -184,7 +186,7 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
             performance.now()
           );
 
-          ctx.clearRect(0, 0, video.videoWidth, video.videoHeight);
+          ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
 
           if (results.faceLandmarks && results.faceLandmarks.length > 0) {
             this.noLipsDetectedCount = 0;
@@ -218,8 +220,8 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
                 if (!point) continue;
                 ctx.beginPath();
                 ctx.arc(
-                  point.x * video.videoWidth,
-                  point.y * video.videoHeight,
+                  point.x * this.canvasWidth,
+                  point.y * this.canvasHeight,
                   2,
                   0,
                   2 * Math.PI
