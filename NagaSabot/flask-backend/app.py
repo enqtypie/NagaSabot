@@ -25,7 +25,7 @@ model = load_model()
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app, origins=["https://nagasabot-frontend.onrender.com", "http://localhost:4200"], supports_credentials=True)
+CORS(app)
 
 # Config
 UPLOAD_FOLDER = 'uploads'
