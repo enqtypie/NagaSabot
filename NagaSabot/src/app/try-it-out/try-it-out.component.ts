@@ -34,7 +34,7 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   currentFrameCount = 0;
   isFrameCollectionComplete = false;
   canvasWidth = 640;
-  canvasHeight = 360;
+  canvasHeight = 480;
   predictedPhrase: string | null = null;
   predictionConfidence: number | null = null;
   isLoading = false;
@@ -113,7 +113,7 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: { ideal: 640 },
-          height: { ideal: 360 },
+          height: { ideal: 480 },
           frameRate: { ideal: 120, max: 240 }, // Request maximum possible FPS
           facingMode: 'user',
           deviceId: videoDevices[0]?.deviceId

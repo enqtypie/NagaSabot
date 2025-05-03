@@ -82,7 +82,7 @@ def get_fixed_centered_lip_region(image: np.ndarray, face_landmarks) -> Tuple[np
         padding_factor = 1.75
         lip_width_padded = int(lip_width_raw * padding_factor)
         lip_height_padded = int(lip_height_raw * padding_factor)
-        target_aspect = LIP_WIDTH / LIP_HEIGHT
+        target_aspect = 4 / 3
         current_aspect = lip_width_padded / lip_height_padded
         if current_aspect > target_aspect:
             lip_height_padded = int(lip_width_padded / target_aspect)
