@@ -390,6 +390,25 @@ def predict():
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+@app.route('/')
+def index():
+    """Root endpoint that provides API information"""
+    return jsonify({
+        'name': 'NagaSabot Lip Reading API',
+        'status': 'operational',
+        'version': '1.0.0',
+        'endpoints': {
+            'root': '/ - This information',
+            'test': '/test - Basic API test',
+            'health': '/health - Server health check',
+            'predict': '/predict - Lip reading prediction (POST with video file)',
+            'upload': '/upload - Video upload and processing (POST with video file)',
+            'uploads': '/uploads/<filename> - Access uploaded files'
+        },
+        'documentation': 'Visit /test for more endpoint details',
+        'frontend': 'https://nagasabot-frontend.onrender.com'
+    })
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
