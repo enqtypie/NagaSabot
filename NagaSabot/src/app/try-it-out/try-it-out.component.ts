@@ -2,11 +2,12 @@ import { Component, ViewChild, ElementRef, OnDestroy, PLATFORM_ID, Inject, After
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { VideoResultComponent } from '../video-result/video-result.component';
 import { VideoService } from '../services/video.service';
+import { HeaderComponent } from '../header/header.component';
 
 @Component({
   selector: 'app-try-it-out',
   standalone: true,
-  imports: [CommonModule, VideoResultComponent],
+  imports: [CommonModule, VideoResultComponent, HeaderComponent],
   templateUrl: './try-it-out.component.html'
 })
 export class TryItOutComponent implements OnDestroy, AfterViewInit {

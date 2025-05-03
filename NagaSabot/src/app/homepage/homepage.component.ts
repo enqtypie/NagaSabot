@@ -1,6 +1,6 @@
 // home.component.ts
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 import { PermissionService } from '../../app/permission.service';
 import { CommonModule } from '@angular/common';
 
@@ -17,7 +17,7 @@ interface FAQ {
   imports: [CommonModule],
   templateUrl: './homepage.component.html'
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   faqs: FAQ[] = [
     {
       id: 1,
@@ -57,22 +57,58 @@ export class HomeComponent {
     }
   ];
   
+  cameraLoading = false;
+  storageLoading = false;
+  cameraGranted = false;
+  storageGranted = false;
+  cameraError = '';
+  storageError = '';
+  
   constructor(
     private router: Router,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private route: ActivatedRoute
   ) {}
 
+  ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      const scrollTo = params['scrollTo'];
+      if (scrollTo) {
+        setTimeout(() => {
+          const el = document.getElementById(scrollTo);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    });
+  }
+
   async requestCameraAccess() {
-    const granted = await this.permissionService.requestCameraPermission();
-    if (granted) {
-      console.log('Camera permission granted');
+    this.cameraLoading = true;
+    this.cameraError = '';
+    try {
+      const granted = await this.permissionService.requestCameraPermission();
+      this.cameraGranted = granted;
+      if (!granted) {
+        this.cameraError = 'Camera permission was denied';
+      }
+    } catch (error) {
+      this.cameraError = 'Failed to request camera permission';
+    } finally {
+      this.cameraLoading = false;
     }
   }
 
   async requestStorageAccess() {
-    const granted = await this.permissionService.requestStoragePermission();
-    if (granted) {
-      console.log('Storage permission granted');
+    this.storageLoading = true;
+    this.storageError = '';
+    try {
+      this.storageGranted = true;
+    } catch (error) {
+      this.storageError = 'Failed to grant storage permission';
+    } finally {
+      this.storageLoading = false;
     }
   }
 
