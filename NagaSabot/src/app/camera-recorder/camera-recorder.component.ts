@@ -46,6 +46,41 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
+  initializeCanvasSize = () => {
+    if (this.videoElement && this.videoElement.nativeElement) {
+      const video = this.videoElement.nativeElement;
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      
+      // Get the video's intrinsic dimensions
+      const videoWidth = video.videoWidth || 640;
+      const videoHeight = video.videoHeight || 480;
+      
+      // Set canvas dimensions taking into account device pixel ratio for sharpness
+      this.canvasWidth = videoWidth * devicePixelRatio;
+      this.canvasHeight = videoHeight * devicePixelRatio;
+      
+      if (this.canvas && this.canvas.nativeElement) {
+        const canvas = this.canvas.nativeElement;
+        canvas.width = this.canvasWidth;
+        canvas.height = this.canvasHeight;
+        
+        // Scale down the drawing context to counteract the pixel ratio scaling
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+        
+        // Set the CSS size to match the video display size
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.objectFit = 'contain';
+      }
+    }
+  }
+  
+  // Create alias for backward compatibility
+  updateCanvasSize = this.initializeCanvasSize;
+
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
       this.isViewInitialized = true;
@@ -130,9 +165,11 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
       await new Promise<void>((resolve) => {
         this.videoElement.nativeElement.onloadedmetadata = () => {
           this.videoElement.nativeElement.play();
-          this.updateCanvasSize(true);
-          window.addEventListener('resize', () => this.updateCanvasSize());
-          window.addEventListener('orientationchange', () => this.updateCanvasSize());
+          // Initialize canvas size once after metadata loads
+          this.initializeCanvasSize();
+          // Only update on resize and orientation change
+          window.addEventListener('resize', () => this.initializeCanvasSize());
+          window.addEventListener('orientationchange', () => this.initializeCanvasSize());
           resolve();
           this.startFaceTracking();
         };
@@ -170,23 +207,47 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
     const drawingUtils = new (this as any).DrawingUtils(ctx);
     const FaceLandmarker = (this as any).FaceLandmarker;
 
+    // Store video dimensions and aspect ratio once
+    const video = this.videoElement.nativeElement;
+    const canvas = this.canvas.nativeElement;
+    
+    // Calculate actual drawing dimensions once
+    const videoAspect = video.videoWidth / video.videoHeight;
+    let drawWidth, drawHeight, offsetX, offsetY;
+    
     const detectFaces = async () => {
       try {
-        if (this.videoElement.nativeElement.paused || this.videoElement.nativeElement.ended) {
-          await this.videoElement.nativeElement.play();
+        if (video.paused || video.ended) {
+          await video.play();
         }
 
-        this.updateCanvasSize();
-
-        if (this.videoElement.nativeElement.currentTime !== this.lastVideoTime) {
-          this.lastVideoTime = this.videoElement.nativeElement.currentTime;
-          const video = this.videoElement.nativeElement;
+        
+        if (video.currentTime !== this.lastVideoTime) {
+          this.lastVideoTime = video.currentTime;
           const results = this.faceLandmarker.detectForVideo(
             video,
             performance.now()
           );
 
-          ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Calculate drawing dimensions for current frame
+          // These calculations need to happen each frame as the container may resize
+          const containerAspect = canvas.clientWidth / canvas.clientHeight;
+          
+          if (containerAspect > videoAspect) {
+            // Container is wider than video
+            drawHeight = canvas.height;
+            drawWidth = drawHeight * videoAspect;
+            offsetX = (canvas.width - drawWidth) / 2;
+            offsetY = 0;
+          } else {
+            // Container is taller than video
+            drawWidth = canvas.width;
+            drawHeight = drawWidth / videoAspect;
+            offsetX = 0;
+            offsetY = (canvas.height - drawHeight) / 2;
+          }
 
           if (results.faceLandmarks && results.faceLandmarks.length > 0) {
             this.noLipsDetectedCount = 0;
@@ -208,6 +269,12 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
                 x: 1 - point.x
               }));
 
+              // Apply custom drawing for lips to maintain correct proportions
+              ctx.save();
+              
+              // Scale and translate context to maintain aspect ratio
+              ctx.translate(offsetX, offsetY);
+              
               drawingUtils.drawConnectors(
                 mirroredLandmarks,
                 FaceLandmarker.FACE_LANDMARKS_LIPS,
@@ -220,8 +287,8 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
                 if (!point) continue;
                 ctx.beginPath();
                 ctx.arc(
-                  point.x * this.canvasWidth,
-                  point.y * this.canvasHeight,
+                  point.x * drawWidth,
+                  point.y * drawHeight,
                   2,
                   0,
                   2 * Math.PI
@@ -229,6 +296,8 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
                 ctx.fillStyle = '#FF3030';
                 ctx.fill();
               }
+              
+              ctx.restore();
             }
           } else {
             this.noLipsDetectedCount++;
@@ -374,19 +443,5 @@ export class CameraRecorderComponent implements OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     this.stopCamera();
-  }
-
-  updateCanvasSize = (forceVideoSize = false) => {
-    if (this.videoElement && this.videoElement.nativeElement) {
-      const video = this.videoElement.nativeElement;
-      const width = (forceVideoSize && video.videoWidth) ? video.videoWidth : (video.videoWidth || this.canvasWidth);
-      const height = (forceVideoSize && video.videoHeight) ? video.videoHeight : (video.videoHeight || this.canvasHeight);
-      this.canvasWidth = width;
-      this.canvasHeight = height;
-      if (this.canvas && this.canvas.nativeElement) {
-        this.canvas.nativeElement.width = width;
-        this.canvas.nativeElement.height = height;
-      }
-    }
   }
 } 

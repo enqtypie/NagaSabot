@@ -7,3 +7,4 @@ tensorflow
 mediapipe
 requests
 gunicorn
+gdown

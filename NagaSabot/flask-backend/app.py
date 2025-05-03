@@ -11,6 +11,7 @@ import mediapipe as mp
 import tensorflow as tf
 import logging
 from typing import Tuple, Dict
+import download_model  # Ensure model is downloaded before loading
 
 # Logging config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
