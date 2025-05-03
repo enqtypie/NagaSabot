@@ -6,4 +6,3 @@ opencv-python
 tensorflow
 mediapipe
 requests
-gdown 

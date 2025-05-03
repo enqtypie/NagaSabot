@@ -54,7 +54,7 @@
   
                   <div class="mt-auto pt-8">
                     <button 
-                      (click)="openCameraModal()"
+                      (click)="showCameraModal = true"
                       class="w-full bg-white text-[#ff3e3e] px-6 py-3.5 rounded-xl font-bold
                              hover:bg-opacity-90 transition-all duration-300 shadow-lg
                              flex items-center justify-center gap-3 font-['Inter']"
@@ -123,28 +123,6 @@
       <strong>Tip:</strong> For best results, record a clear, well-lit video of your lips while speaking the phrase. Keep your face centered and speak naturally. Videos should be at least 4 seconds long.
     </div>
   
-    <!-- prediction result -->
-    <div *ngIf="predictedPhrase" class="max-w-4xl mx-auto mt-8 p-6 bg-white rounded-2xl shadow-lg text-center">
-      <h2 class="text-2xl font-bold text-[#ff3e3e] mb-2 font-['Poppins']">Prediction Result</h2>
-      <div class="text-lg text-gray-800 font-['Inter']">Phrase: <span class="font-bold">{{ predictedPhrase }}</span></div>
-      <div class="text-md text-gray-600 font-['Inter']" *ngIf="predictionConfidence !== null">Confidence: <span class="font-bold">{{ predictionConfidence | percent:'1.0-2' }}</span></div>
-    </div>
-  
-    <!-- loading spinner -->
-    <div *ngIf="isLoading" class="flex justify-center items-center mt-8">
-      <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#ff3e3e] border-t-transparent"></div>
-      <span class="ml-4 text-[#ff3e3e] font-bold text-lg">Processing video, please wait...</span>
-      <div class="ml-4 w-64 bg-gray-200 rounded-full h-2.5">
-        <div class="bg-[#ff3e3e] h-2.5 rounded-full" [style.width.%]="(frameCount / 40) * 100"></div>
-      </div>
-      <span class="ml-2 text-[#ff3e3e] font-bold">{{ frameCount }}/40 frames</span>
-    </div>
-  
-    <!-- error message -->
-    <div *ngIf="errorMessage" class="max-w-4xl mx-auto mt-4 p-4 bg-red-50 border-l-4 border-red-400 text-red-900 rounded">
-      {{ errorMessage }}
-    </div>
-  
     <!-- video result -->
     <div *ngIf="videoBlob" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="video-result-enter">
@@ -155,113 +133,10 @@
       </div>
     </div>
   
-    <!-- camera modal -->
-    <div *ngIf="showCameraModal" 
-         class="fixed top-0 left-0 right-0 z-50 flex justify-center items-start min-h-screen pt-24 p-2"
-         role="dialog"
-         aria-labelledby="camera-modal-title"
-         aria-modal="true">
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
-           [class.opacity-0]="isModalClosing"
-           (click)="closeCameraModal()">
-      </div>
-      
-      <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden transition-all duration-300"
-           [class.opacity-0]="isModalClosing">
-        <!-- modal header -->
-        <div class="bg-[#ff3e3e] text-white h-[40px] flex justify-between items-center px-4">
-          <span class="text-[15px] font-['Inter']">Camera Recording</span>
-          <button 
-            (click)="closeCameraModal()"
-            class="text-white/90 hover:text-white transition-colors"
-            aria-label="Close modal"
-          >
-            ✕
-          </button>
-        </div>
-
-        <!-- camera preview -->
-        <div class="relative bg-black w-full aspect-[4/3] rounded-b-xl overflow-hidden mx-auto">
-          <video 
-            #videoElement 
-            autoplay 
-            playsinline 
-            class="absolute top-0 left-0 w-full h-full object-contain -scale-x-100 rounded-lg"
-          ></video>
-
-          <canvas #canvas 
-                  class="absolute top-0 left-0 w-full h-full pointer-events-none rounded-lg"
-                  [width]="canvasWidth"
-                  [height]="canvasHeight">
-          </canvas>
-
-          <!-- recording indicator -->
-          <div *ngIf="isRecording" 
-               class="absolute top-4 left-4 flex items-center gap-2 bg-black/50 
-                      text-white px-3 py-1.5 rounded-lg text-sm font-['Inter']">
-            <span class="animate-pulse w-2.5 h-2.5 rounded-full bg-red-500"></span>
-            Recording
-          </div>
-
-          <!-- frame counter -->
-          <div *ngIf="isRecording" 
-               class="absolute top-4 right-4 bg-black/50 text-white px-3 py-1.5 
-                      rounded-lg text-sm font-['Inter']">
-            <div class="w-32 bg-gray-200 rounded-full h-2.5">
-              <div class="bg-[#ff3e3e] h-2.5 rounded-full" [style.width.%]="(currentFrameCount / 40) * 100"></div>
-            </div>
-            <span class="ml-2">{{ currentFrameCount }}</span>
-          </div>
-
-          <!-- lips visibility message -->
-          <div *ngIf="!areLipsVisible && !isModalClosing" 
-               class="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div class="text-center p-6 bg-white/10 rounded-xl backdrop-blur-sm">
-              <div class="text-white text-lg font-['Inter'] font-medium mb-2">
-                Lips Not Detected
-              </div>
-              <p class="text-white/80 text-sm font-['Inter'] max-w-xs">
-                Please ensure your lips are clearly visible in the camera view
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- controls -->
-        <div class="p-6 bg-gray-50">
-          <!-- guidance message -->
-          <p class="text-gray-600 text-center mb-4 text-sm font-['Inter']">
-            Please ensure your lips are clearly visible in the camera view
-          </p>
-          
-          <div class="flex justify-center gap-4">
-            <!-- record button -->
-            <button 
-              *ngIf="!isRecording"
-              (click)="startRecording()"
-              [disabled]="!areLipsVisible"
-              class="bg-[#ff3e3e] text-white px-6 py-3 rounded-lg font-bold
-                     hover:bg-opacity-90 transition-all duration-300 shadow-lg
-                     flex items-center justify-center gap-2 w-40 font-['Inter']
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span class="w-3 h-3 rounded-full bg-white"></span>
-              <span>Record</span>
-            </button>
-
-            <!-- stop button -->
-            <button 
-              *ngIf="isRecording"
-              (click)="stopRecording()"
-              class="bg-[#ff3e3e] text-white px-6 py-3 rounded-lg font-bold
-                     hover:bg-opacity-90 transition-all duration-300 shadow-lg
-                     flex items-center justify-center gap-2 w-40 font-['Inter']"
-            >
-              <span class="w-3 h-3 bg-white"></span>
-              <span>Stop</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- camera recorder -->
+    <app-camera-recorder
+      *ngIf="showCameraModal"
+      (videoRecorded)="handleVideoRecorded($event)"
+      (close)="showCameraModal = false">
+    </app-camera-recorder>
   </main>
