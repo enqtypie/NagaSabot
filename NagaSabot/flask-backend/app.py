@@ -4,7 +4,8 @@ from werkzeug.utils import secure_filename # type: ignore
 import os
 from datetime import datetime
 import uuid
-from lipreading_model import LipReadingModel
+from lipreading_model import predict_lipreading
+import tensorflow as tf
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -21,20 +22,11 @@ if not os.path.exists(UPLOAD_FOLDER):
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
-# Initialize the lipreading model
-lipreading_model = LipReadingModel()
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'nagsabot_full_model_morecleaner4.keras')
+model = tf.keras.models.load_model(MODEL_PATH)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# New function to get lipreading result from the model
-def get_lipreading_result(video_path):
-    try:
-        result = lipreading_model.predict(video_path)
-        return result
-    except Exception as e:
-        print(f"Error in lipreading prediction: {e}")
-        return {"phrase": "Error in lipreading", "accuracy": 0.0}
 
 @app.route('/upload', methods=['POST'])
 def upload_video():
@@ -60,7 +52,7 @@ def upload_video():
         video_file.save(filepath)
         
         # Get lipreading result from the model
-        result = get_lipreading_result(filepath)
+        result = predict_lipreading(filepath, model)
         
         return jsonify({
             'message': 'Video uploaded successfully',
@@ -68,7 +60,7 @@ def upload_video():
             'original_filename': original_filename,
             'videoUrl': f'http://localhost:5000/uploads/{unique_filename}',
             'phrase': result.get('phrase', 'No phrase detected'),
-            'accuracy': float(result.get('accuracy', 0.0)),
+            'accuracy': float(result.get('confidence', 0.0)),
             'timestamp': datetime.now().timestamp()
         }), 200
         
@@ -86,6 +78,23 @@ def serve_video(filename):
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'}), 200
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    temp_path = 'temp_video.mp4'
+    file.save(temp_path)
+    try:
+        result = predict_lipreading(temp_path, model)
+        return jsonify({
+            'phrase': result.get('phrase', 'No phrase detected'),
+            'confidence': float(result.get('confidence', 0.0))
+        })
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

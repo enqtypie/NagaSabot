@@ -35,6 +35,10 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   isFrameCollectionComplete = false;
   canvasWidth = 640;
   canvasHeight = 360;
+  predictedPhrase: string | null = null;
+  predictionConfidence: number | null = null;
+  isLoading = false;
+  errorMessage: string | null = null;
 
   constructor(
     private videoService: VideoService,
@@ -334,6 +338,11 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
     this.videoBlob = new Blob(this.chunks, { type: 'video/webm' });
     console.log('Video blob created:', this.videoBlob);
     console.log('Video blob size:', this.videoBlob.size);
+    if (this.videoBlob) {
+      this.isLoading = true;
+      this.errorMessage = null;
+      this.checkAndPredictVideo(new File([this.videoBlob], 'recorded.webm', { type: 'video/webm' }));
+    }
   }
 
   stopCamera() {
@@ -362,7 +371,40 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
       console.log('File selected:', input.files[0]);
       console.log('File size:', input.files[0].size);
       this.videoBlob = input.files[0];
+      this.isLoading = true;
+      this.errorMessage = null;
+      this.checkAndPredictVideo(input.files[0]);
     }
+  }
+
+  private checkAndPredictVideo(file: File) {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      if (video.duration < 1) {
+        this.isLoading = false;
+        this.errorMessage = 'Please record or upload a longer video (at least 1 second) for best results.';
+        return;
+      }
+      this.predictVideo(file);
+    };
+  }
+
+  private predictVideo(file: File) {
+    this.videoService.predictLipreading(file)
+      .subscribe(result => {
+        this.predictedPhrase = result.phrase;
+        this.predictionConfidence = result.confidence;
+        this.isLoading = false;
+        this.errorMessage = null;
+      }, err => {
+        this.predictedPhrase = 'Prediction failed';
+        this.predictionConfidence = null;
+        this.isLoading = false;
+        this.errorMessage = 'Prediction failed. Please try again with a clearer or longer video.';
+      });
   }
 
   handleRestart() {

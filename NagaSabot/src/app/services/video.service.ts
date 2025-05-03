@@ -25,4 +25,10 @@ export class VideoService {
       }))
     );
   }
+
+  predictLipreading(videoFile: File): Observable<{ phrase: string, confidence: number }> {
+    const formData = new FormData();
+    formData.append('file', videoFile);
+    return this.http.post<{ phrase: string, confidence: number }>(`${this.apiUrl}/predict`, formData);
+  }
 } 

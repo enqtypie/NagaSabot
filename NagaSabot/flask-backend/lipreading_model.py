@@ -1,54 +1,160 @@
 import os
 import cv2
+import math
 import numpy as np
-import tensorflow as tf
 import mediapipe as mp
-import requests
+import tensorflow as tf
+import logging
+from typing import Tuple, Dict
 
-# Use gdown for Google Drive direct download
-try:
-    import gdown
-except ImportError:
-    gdown = None
+# Set up simplified logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("NagaSabot")
 
-# MODEL_PATH = "nagsabot_full_model_onlytwophrase.keras"
-# MODEL_URL = "https://drive.google.com/uc?id=1Ubje08hb0aKAZLU5xhw3QTUv5UcUVcpA"  # Direct download link for Google Drive file
+# Constants - exactly matching training notebook/tester
+TOTAL_FRAMES = 75
+LIP_WIDTH = 112
+LIP_HEIGHT = 80
+CHANNELS = 3
 
-def download_model():
-    # if not os.path.exists(MODEL_PATH):
-    print("Model file not found, downloading...")
-    if gdown:
-        # gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
-        print("gdown not installed. Please install it with 'pip install gdown'.")
-        raise ImportError("gdown is required to download the model from Google Drive.")
-    print("Model downloaded.")
-    # else:
-    #     print("Model file already exists, skipping download.")
+# MediaPipe setup
+mp_face_mesh = mp.solutions.face_mesh
+
+# MediaPipe face mesh indices for lips
+LIP_OUTER_INDICES = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146]  # Outline
+LIP_INNER_INDICES = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95]  # Inner contour
+
+# Reference points for lip anchoring
+LIP_CENTER_UPPER = 13  # Upper lip center landmark
+LIP_CENTER_LOWER = 14  # Lower lip center landmark
+LEFT_EYE_OUTER = 33    # Left eye outer corner
+RIGHT_EYE_OUTER = 263  # Right eye outer corner
+
+# Bikol-Naga phrases (from tester code)
+BIKOL_NAGA_PHRASES = [
+    "marhay na aldaw",
+    "dios mabalos",
+    "padaba taka",
+    "tabi po",
+    "iyo tabi"
+]
+
+def enhance_lip_region(lip_frame: np.ndarray) -> np.ndarray:
+    """Preprocess and enhance the lip region for model input."""
+    try:
+        if lip_frame is None or lip_frame.size == 0:
+            logger.warning("Preprocessing received empty image.")
+            return np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)
+        if len(lip_frame.shape) == 2 or lip_frame.shape[2] == 1:
+            lip_frame = cv2.cvtColor(lip_frame, cv2.COLOR_GRAY2BGR)
+        elif lip_frame.shape[2] != 3:
+            logger.warning(f"Preprocessing received image with unexpected channels: {lip_frame.shape}")
+            return np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)
+        lip_frame_gray = cv2.cvtColor(lip_frame, cv2.COLOR_BGR2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(3, 3))
+        lip_frame_eq = clahe.apply(lip_frame_gray)
+        lip_frame_filtered = cv2.bilateralFilter(lip_frame_eq, 5, 35, 35)
+        kernel = np.array([[-1, -1, -1], [-1,  9, -1], [-1, -1, -1]])
+        lip_frame_sharp = cv2.filter2D(lip_frame_filtered, -1, kernel)
+        lip_frame_final = cv2.GaussianBlur(lip_frame_sharp, (3, 3), 0)
+        lip_frame_3ch = cv2.cvtColor(lip_frame_final, cv2.COLOR_GRAY2BGR)
+        return lip_frame_3ch
+    except Exception as e:
+        logger.error(f"Error in enhance_lip_region: {e}")
+        return np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)
+
+def get_fixed_centered_lip_region(image: np.ndarray, face_landmarks) -> Tuple[np.ndarray, float, Tuple[int, int, int, int], float]:
+    """Extract a centered, rotated, and padded lip region from the image using face landmarks."""
+    h, w, _ = image.shape
+    try:
+        outer_lip_points = [(int(face_landmarks.landmark[i].x * w), int(face_landmarks.landmark[i].y * h)) for i in LIP_OUTER_INDICES]
+        inner_lip_points = [(int(face_landmarks.landmark[i].x * w), int(face_landmarks.landmark[i].y * h)) for i in LIP_INNER_INDICES]
+        all_lip_points = outer_lip_points + inner_lip_points
+        all_x = [p[0] for p in all_lip_points]
+        all_y = [p[1] for p in all_lip_points]
+        center_x = sum(all_x) / len(all_x)
+        center_y = sum(all_y) / len(all_y)
+        center_point = (int(center_x), int(center_y))
+        min_x, max_x = min(all_x), max(all_x)
+        min_y, max_y = min(all_y), max(all_y)
+        lip_width_raw = max_x - min_x
+        lip_height_raw = max_y - min_y
+        padding_factor = 1.75
+        lip_width_padded = int(lip_width_raw * padding_factor)
+        lip_height_padded = int(lip_height_raw * padding_factor)
+        target_aspect = LIP_WIDTH / LIP_HEIGHT
+        current_aspect = lip_width_padded / lip_height_padded
+        if current_aspect > target_aspect:
+            lip_height_padded = int(lip_width_padded / target_aspect)
+        else:
+            lip_width_padded = int(lip_height_padded * target_aspect)
+        left_eye = face_landmarks.landmark[LEFT_EYE_OUTER]
+        right_eye = face_landmarks.landmark[RIGHT_EYE_OUTER]
+        eye_dx = (right_eye.x - left_eye.x) * w
+        eye_dy = (right_eye.y - left_eye.y) * h
+        angle_rad = math.atan2(eye_dy, eye_dx)
+        angle_deg = math.degrees(angle_rad)
+        rotation_matrix = cv2.getRotationMatrix2D(center_point, angle_deg, 1.0)
+        rotated_image = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_LINEAR)
+        lip_left_x = max(0, int(center_point[0] - (lip_width_padded / 2)))
+        lip_right_x = min(w, int(center_point[0] + (lip_width_padded / 2)))
+        lip_top = max(0, int(center_point[1] - (lip_height_padded / 2)))
+        lip_bottom = min(h, int(center_point[1] + (lip_height_padded / 2)))
+        lip_region = rotated_image[lip_top:lip_bottom, lip_left_x:lip_right_x]
+        if lip_region.size > 0:
+            lip_region_resized = cv2.resize(lip_region, (LIP_WIDTH, LIP_HEIGHT))
+        else:
+            lip_region_resized = np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)
+        return lip_region_resized, 0, (lip_left_x, lip_top, lip_right_x, lip_bottom), angle_deg
+    except Exception as e:
+        logger.error(f"Error in get_fixed_centered_lip_region: {e}")
+        return np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8), 0, (0, 0, 0, 0), 0
+
+def predict_lipreading(video_path: str, model: tf.keras.Model) -> Dict[str, object]:
+    """Run the full lipreading pipeline and return prediction. Now samples TOTAL_FRAMES evenly from all detected lip frames."""
+    cap = cv2.VideoCapture(video_path)
+    all_frames = []
+    with mp_face_mesh.FaceMesh(
+        max_num_faces=1,
+        refine_landmarks=True,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    ) as face_mesh:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.flip(frame, 1)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = face_mesh.process(rgb_frame)
+            if results.multi_face_landmarks:
+                face_landmarks = results.multi_face_landmarks[0]
+                lip_region, *_ = get_fixed_centered_lip_region(frame, face_landmarks)
+                processed_lip = enhance_lip_region(lip_region)
+                all_frames.append(processed_lip)
+    cap.release()
+
+    # Evenly sample TOTAL_FRAMES from all_frames
+    if len(all_frames) >= TOTAL_FRAMES:
+        idxs = np.linspace(0, len(all_frames) - 1, TOTAL_FRAMES).astype(int)
+        frames = [all_frames[i] for i in idxs]
+    else:
+        pad = [np.zeros((LIP_HEIGHT, LIP_WIDTH, CHANNELS), dtype=np.uint8)] * (TOTAL_FRAMES - len(all_frames))
+        frames = all_frames + pad
+
+    X = np.array(frames, dtype=np.float32) / 255.0
+    X = np.expand_dims(X, axis=0)
+    pred = model.predict(X)
+    idx = int(np.argmax(pred[0]))
+    phrase = BIKOL_NAGA_PHRASES[idx] if idx < len(BIKOL_NAGA_PHRASES) else f'Unknown ({idx})'
+    confidence = float(pred[0][idx])
+    return {'phrase': phrase, 'confidence': confidence}
 
 # Constants for the lip reading model
 NUM_FRAMES = 30  # Changed from 75 to 30 frames per sample
 HEIGHT = 80       # Height of the lip patch
 WIDTH = 112       # Width of the lip patch
 CHANNELS = 3      # RGB channels
-
-# Bikol-Naga phrases (must match exactly the labels used for training)
-BIKOL_NAGA_PHRASES = [
-    "marhay na aldaw",
-    "dios mabalos",
-    "nagkakan ka na",
-    "pasain ka",
-    "maray man ako",
-    "maduman na ako",
-    "nuarin kita mahali",
-    "pahagad man ako",
-    "tano",
-    "iyo na ito",
-    "dae man giraray",
-    "bako man",
-    "sakuya an",
-    "magkarigos na ika",
-    "madya mabalyo na kita"
-]
 
 def is_mouth_open(face_landmarks, threshold=0.018):
     upper_lip = face_landmarks.landmark[13]

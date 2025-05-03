@@ -118,6 +118,29 @@
       </div>
     </section>
   
+    <!-- user guidance -->
+    <div class="max-w-4xl mx-auto mt-8 mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 rounded">
+      <strong>Tip:</strong> For best results, record a clear, well-lit video of your lips while speaking the phrase. Keep your face centered and speak naturally. Videos should be at least 4 seconds long.
+    </div>
+  
+    <!-- prediction result -->
+    <div *ngIf="predictedPhrase" class="max-w-4xl mx-auto mt-8 p-6 bg-white rounded-2xl shadow-lg text-center">
+      <h2 class="text-2xl font-bold text-[#ff3e3e] mb-2 font-['Poppins']">Prediction Result</h2>
+      <div class="text-lg text-gray-800 font-['Inter']">Phrase: <span class="font-bold">{{ predictedPhrase }}</span></div>
+      <div class="text-md text-gray-600 font-['Inter']" *ngIf="predictionConfidence !== null">Confidence: <span class="font-bold">{{ predictionConfidence | percent:'1.0-2' }}</span></div>
+    </div>
+  
+    <!-- loading spinner -->
+    <div *ngIf="isLoading" class="flex justify-center items-center mt-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#ff3e3e] border-t-transparent"></div>
+      <span class="ml-4 text-[#ff3e3e] font-bold text-lg">Processing video, please wait...</span>
+    </div>
+  
+    <!-- error message -->
+    <div *ngIf="errorMessage" class="max-w-4xl mx-auto mt-4 p-4 bg-red-50 border-l-4 border-red-400 text-red-900 rounded">
+      {{ errorMessage }}
+    </div>
+  
     <!-- video result -->
     <div *ngIf="videoBlob" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="video-result-enter">
