@@ -2,13 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { VideoResult } from '../video-result/video-result.component';
-import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class VideoService {
-  private apiUrl = environment.apiUrl; // Use environment variable
+  private apiUrl = 'https://nagasabot.onrender.com';  // Use environment variable
 
   constructor(private http: HttpClient) {}
 
