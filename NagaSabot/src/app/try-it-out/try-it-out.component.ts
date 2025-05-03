@@ -28,12 +28,13 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   private isViewInitialized = false;
   private lastVideoTime = -1;
   private noLipsDetectedCount = 0;
-  private readonly NO_LIPS_THRESHOLD = 10; // Number of consecutive frames without lips to consider them not visible
+  private readonly NO_LIPS_THRESHOLD = 10;
   
-  // Frame tracking
   readonly REQUIRED_FRAMES = 30;
   currentFrameCount = 0;
   isFrameCollectionComplete = false;
+  canvasWidth = 640;
+  canvasHeight = 360;
 
   constructor(
     private videoService: VideoService,
@@ -123,8 +124,9 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
       await new Promise<void>((resolve) => {
         this.videoElement.nativeElement.onloadedmetadata = () => {
           this.videoElement.nativeElement.play();
-          this.canvas.nativeElement.width = this.videoElement.nativeElement.videoWidth;
-          this.canvas.nativeElement.height = this.videoElement.nativeElement.videoHeight;
+          this.updateCanvasSize();
+          window.addEventListener('resize', this.updateCanvasSize);
+          window.addEventListener('orientationchange', this.updateCanvasSize);
           resolve();
           this.startFaceTracking(); // Only start face tracking, not recording
         };
@@ -265,6 +267,8 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
       this.showCameraModal = false;
       this.isModalClosing = false;
       this.stopCamera();
+      window.removeEventListener('resize', this.updateCanvasSize);
+      window.removeEventListener('orientationchange', this.updateCanvasSize);
     }, 300);
   }
 
@@ -389,5 +393,13 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     this.stopCamera();
+  }
+
+  updateCanvasSize = () => {
+    if (this.videoElement && this.videoElement.nativeElement) {
+      const rect = this.videoElement.nativeElement.getBoundingClientRect();
+      this.canvasWidth = Math.floor(rect.width);
+      this.canvasHeight = Math.floor(rect.height);
+    }
   }
 }

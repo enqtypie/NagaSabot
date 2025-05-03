@@ -154,18 +154,18 @@
         </div>
 
         <!-- camera preview -->
-        <div class="relative bg-black aspect-video">
+        <div class="relative bg-black w-full aspect-[16/9] max-h-[60vw] sm:max-h-[360px] rounded-b-xl overflow-hidden">
           <video 
             #videoElement 
             autoplay 
             playsinline 
-            class="w-full h-full object-cover -scale-x-100"
+            class="absolute top-0 left-0 w-full h-full object-cover -scale-x-100"
           ></video>
 
           <canvas #canvas 
                   class="absolute top-0 left-0 w-full h-full pointer-events-none rounded"
-                  [width]="640"
-                  [height]="360">
+                  [width]="canvasWidth"
+                  [height]="canvasHeight">
           </canvas>
 
           <!-- recording indicator -->
