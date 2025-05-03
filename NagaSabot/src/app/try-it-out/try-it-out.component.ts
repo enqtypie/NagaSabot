@@ -39,6 +39,7 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   predictionConfidence: number | null = null;
   isLoading = false;
   errorMessage: string | null = null;
+  frameCount = 0;
 
   constructor(
     private videoService: VideoService,
@@ -193,10 +194,12 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
             // Increment frame count if recording and lips are visible
             if (this.isRecording && !this.isFrameCollectionComplete) {
               this.currentFrameCount++;
+              this.frameCount = this.currentFrameCount;
+              console.log(`Processed ${this.currentFrameCount} frames`);
               if (this.currentFrameCount >= this.REQUIRED_FRAMES) {
                 this.isFrameCollectionComplete = true;
                 this.stopRecording();
-                return; // Exit the detection loop after stopping
+                return;
               }
             }
 
@@ -394,16 +397,20 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
 
   private predictVideo(file: File) {
     this.videoService.predictLipreading(file)
-      .subscribe(result => {
-        this.predictedPhrase = result.phrase;
-        this.predictionConfidence = result.confidence;
-        this.isLoading = false;
-        this.errorMessage = null;
-      }, err => {
-        this.predictedPhrase = 'Prediction failed';
-        this.predictionConfidence = null;
-        this.isLoading = false;
-        this.errorMessage = 'Prediction failed. Please try again with a clearer or longer video.';
+      .subscribe({
+        next: ({ phrase, confidence }) => {
+          this.predictedPhrase = phrase;
+          this.predictionConfidence = confidence;
+          console.log(`Prediction confidence: ${confidence}`);
+          this.isLoading = false;
+          this.errorMessage = null;
+        },
+        error: () => {
+          this.predictedPhrase = 'Prediction failed';
+          this.predictionConfidence = null;
+          this.isLoading = false;
+          this.errorMessage = 'Prediction failed. Please try again with a clearer or longer video.';
+        }
       });
   }
 

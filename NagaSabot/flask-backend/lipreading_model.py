@@ -117,8 +117,8 @@ def predict_lipreading(video_path: str, model: tf.keras.Model) -> Dict[str, obje
     with mp_face_mesh.FaceMesh(
         max_num_faces=1,
         refine_landmarks=True,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
+        min_detection_confidence=0.7,
+        min_tracking_confidence=0.7
     ) as face_mesh:
         while True:
             ret, frame = cap.read()
@@ -148,6 +148,8 @@ def predict_lipreading(video_path: str, model: tf.keras.Model) -> Dict[str, obje
     idx = int(np.argmax(pred[0]))
     phrase = BIKOL_NAGA_PHRASES[idx] if idx < len(BIKOL_NAGA_PHRASES) else f'Unknown ({idx})'
     confidence = float(pred[0][idx])
+    logger.info(f"Processed {len(frames)} frames")
+    logger.info(f"Prediction confidence: {confidence}")
     return {'phrase': phrase, 'confidence': confidence}
 
 # Constants for the lip reading model
@@ -163,9 +165,6 @@ def is_mouth_open(face_landmarks, threshold=0.018):
 
 class LipReadingModel:
     def __init__(self):
-        # Load the model from the specified file
-        # self.model = tf.keras.models.load_model('nagsabot_full_model_onlytwophrase.keras')
-        # Initialize MediaPipe Face Mesh
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces=1,
@@ -296,22 +295,6 @@ class LipReadingModel:
                 print("No speech detected (mouth mostly closed)")
                 return {"phrase": "No speech detected", "accuracy": 0.0}
 
-            # # Convert to numpy array and normalize to [0,1]
-            # input_data = np.array(frames_buffer[:NUM_FRAMES], dtype=np.float32) / 255.0
-            # # Reshape to match model input shape
-            # input_data = input_data.reshape(1, NUM_FRAMES, HEIGHT, WIDTH, CHANNELS)
-            # print(f"Input data shape: {input_data.shape}")
-            # 
-            # # Make prediction
-            # prediction = self.model.predict(input_data, verbose=0)[0]
-            # predicted_class = np.argmax(prediction)
-            # confidence = prediction[predicted_class]
-            # print(f"Prediction made: {BIKOL_NAGA_PHRASES[predicted_class]} with confidence {confidence}")
-            # 
-            # return {
-            #     "phrase": BIKOL_NAGA_PHRASES[predicted_class],
-            #     "accuracy": confidence
-            # }
             return {"phrase": "Model not loaded", "accuracy": 0.0}
         except Exception as e:
             print(f"Error in predict: {e}")

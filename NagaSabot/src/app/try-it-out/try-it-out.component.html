@@ -134,6 +134,10 @@
     <div *ngIf="isLoading" class="flex justify-center items-center mt-8">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#ff3e3e] border-t-transparent"></div>
       <span class="ml-4 text-[#ff3e3e] font-bold text-lg">Processing video, please wait...</span>
+      <div class="ml-4 w-64 bg-gray-200 rounded-full h-2.5">
+        <div class="bg-[#ff3e3e] h-2.5 rounded-full" [style.width.%]="(frameCount / 40) * 100"></div>
+      </div>
+      <span class="ml-2 text-[#ff3e3e] font-bold">{{ frameCount }}/40 frames</span>
     </div>
   
     <!-- error message -->
@@ -203,7 +207,10 @@
           <div *ngIf="isRecording" 
                class="absolute top-4 right-4 bg-black/50 text-white px-3 py-1.5 
                       rounded-lg text-sm font-['Inter']">
-            Frames: {{currentFrameCount}}/{{REQUIRED_FRAMES}}
+            <div class="w-32 bg-gray-200 rounded-full h-2.5">
+              <div class="bg-[#ff3e3e] h-2.5 rounded-full" [style.width.%]="(currentFrameCount / 40) * 100"></div>
+            </div>
+            <span class="ml-2">{{ currentFrameCount }}</span>
           </div>
 
           <!-- lips visibility message -->
