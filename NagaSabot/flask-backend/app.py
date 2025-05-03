@@ -163,8 +163,8 @@ def predict_lipreading(video_path: str) -> Dict[str, object]:
     logger.info(f"Video info - FPS: {fps}, Frames: {frame_count}, Resolution: {video_width}x{video_height}, Duration: {duration:.2f}s")
     
     # Check if video is too short
-    if duration < 1.0:
-        logger.warning(f"Video is too short: {duration:.2f}s, need at least 1.0s")
+    if frame_count < 25:
+        logger.warning(f"Video is too short: {frame_count} frames, need at least 10 frames")
         return {'error': 'Video is too short', 'phrase': 'Too short', 'confidence': 0.0}
     
     all_frames = []
