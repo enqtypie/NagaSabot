@@ -186,7 +186,7 @@ def upload_video():
             'message': 'Video uploaded successfully',
             'filename': unique,
             'original_filename': original,
-            'videoUrl': f'http://localhost:5000/uploads/{unique}',
+            'videoUrl': f'https://nagasabot.onrender.com/uploads/{unique}',
             'phrase': result['phrase'],
             'accuracy': result['confidence'],
             'timestamp': datetime.now().timestamp()
@@ -225,14 +225,6 @@ def predict():
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
-@app.after_request
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
-    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
