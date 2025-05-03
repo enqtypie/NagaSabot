@@ -153,19 +153,71 @@ def predict_lipreading(video_path: str) -> Dict[str, object]:
         logger.error(f"Cannot open video file: {video_path}")
         return {'error': 'Cannot open video file', 'phrase': 'Error', 'confidence': 0.0}
     
-    # Get video metadata
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    duration = frame_count / fps if fps > 0 else 0
+    # Get video metadata with validation
+    try:
+        # Validate FPS
+        fps_raw = cap.get(cv2.CAP_PROP_FPS)
+        fps = float(fps_raw) if 1.0 <= fps_raw <= 240.0 else 30.0  # Default to 30 fps if out of reasonable range
+        
+        # Validate frame count
+        frame_count_raw = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        if frame_count_raw > 0 and frame_count_raw < 10000:  # Sanity check for reasonable frame count
+            frame_count = int(frame_count_raw)
+        else:
+            logger.warning(f"Invalid frame count detected: {frame_count_raw}, using manual counting")
+            # Manually count frames as a fallback
+            frame_count = 0
+            temp_cap = cv2.VideoCapture(video_path)
+            while True:
+                ret, _ = temp_cap.read()
+                if not ret:
+                    break
+                frame_count += 1
+            temp_cap.release()
+        
+        # Validate dimensions
+        video_width = int(max(1, cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        video_height = int(max(1, cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        
+        # Calculate duration with safety checks
+        if fps > 0 and frame_count > 0:
+            duration = frame_count / fps
+        else:
+            # Fallback: try to get duration directly
+            try:
+                duration = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            except:
+                duration = 0
+            
+            # If still zero, estimate based on file size
+            if duration <= 0:
+                # Rough estimate: assume 500KB per second for medium quality video
+                duration = max(0.5, file_size_mb * 2)
+        
+        logger.info(f"Video info - FPS: {fps:.2f}, Frames: {frame_count}, Resolution: {video_width}x{video_height}, Duration: {duration:.2f}s")
+        
+        # Check if video is too short - Use both frame count and duration with safe defaults
+        min_frames = 10  # Minimum frames needed - reduced from 15 to be more lenient
+        min_duration = 0.3  # Minimum duration in seconds - reduced from 0.5 to be more lenient
+        
+        if frame_count < min_frames:
+            logger.warning(f"Not enough frames: {frame_count}, need at least {min_frames}")
+            return {'error': f'Video has too few frames ({frame_count}), need at least {min_frames}', 
+                    'phrase': 'Too short', 'confidence': 0.0}
+        
+        if duration < min_duration:
+            logger.warning(f"Video is too short: {duration:.2f}s, need at least {min_duration}s")
+            return {'error': f'Video is too short ({duration:.2f}s), need at least {min_duration}s', 
+                    'phrase': 'Too short', 'confidence': 0.0}
     
-    logger.info(f"Video info - FPS: {fps}, Frames: {frame_count}, Resolution: {video_width}x{video_height}, Duration: {duration:.2f}s")
-    
-    # Check if video is too short
-    if frame_count < 25:
-        logger.warning(f"Video is too short: {frame_count} frames, need at least 10 frames")
-        return {'error': 'Video is too short', 'phrase': 'Too short', 'confidence': 0.0}
+    except Exception as e:
+        logger.error(f"Error analyzing video metadata: {str(e)}")
+        # Continue with default values if metadata extraction fails
+        fps = 30.0
+        frame_count = 0
+        video_width = 640
+        video_height = 480
+        duration = 1.0
     
     all_frames = []
     processed_frames = 0
@@ -187,16 +239,30 @@ def predict_lipreading(video_path: str) -> Dict[str, object]:
                 if processed_frames % 10 == 0:
                     logger.info(f"Processed {processed_frames}/{frame_count} frames...")
                 
-                frame = cv2.flip(frame, 1)
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                result = face_mesh.process(rgb)
+                # Skip further processing if we have enough frames
+                if len(all_frames) >= TOTAL_FRAMES * 2:  # Collect up to 2x needed frames, then will sample
+                    logger.info(f"Collected enough frames ({len(all_frames)}), stopping early")
+                    break
                 
-                if result.multi_face_landmarks:
-                    faces_detected += 1
-                    landmarks = result.multi_face_landmarks[0]
-                    lip_region, *_ = get_fixed_centered_lip_region(frame, landmarks)
-                    enhanced = enhance_lip_region(lip_region)
-                    all_frames.append(enhanced)
+                # Safety check for corrupted frames
+                if frame is None or frame.size == 0 or frame.shape[0] <= 0 or frame.shape[1] <= 0:
+                    logger.warning(f"Skipping invalid frame at position {processed_frames}")
+                    continue
+                
+                try:
+                    frame = cv2.flip(frame, 1)
+                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    result = face_mesh.process(rgb)
+                    
+                    if result.multi_face_landmarks:
+                        faces_detected += 1
+                        landmarks = result.multi_face_landmarks[0]
+                        lip_region, *_ = get_fixed_centered_lip_region(frame, landmarks)
+                        enhanced = enhance_lip_region(lip_region)
+                        all_frames.append(enhanced)
+                except Exception as e:
+                    logger.warning(f"Error processing frame {processed_frames}: {str(e)}")
+                    continue  # Skip this frame but continue processing
     except Exception as e:
         logger.error(f"Error processing video frames: {str(e)}")
         return {'error': f'Error processing video: {str(e)}', 'phrase': 'Error', 'confidence': 0.0}
@@ -212,13 +278,39 @@ def predict_lipreading(video_path: str) -> Dict[str, object]:
     
     # Prepare frames for model input
     try:
-        if len(all_frames) >= TOTAL_FRAMES:
+        # If we have a small number of frames but still more than minimum required,
+        # duplicate frames to reach desired count instead of using blank frames
+        if 0 < len(all_frames) < TOTAL_FRAMES:
+            logger.info(f"Duplicating {len(all_frames)} frames to reach {TOTAL_FRAMES} frames")
+            # Calculate how many times each frame needs to be duplicated
+            duplication_factor = math.ceil(TOTAL_FRAMES / len(all_frames))
+            # Duplicate frames
+            duplicated_frames = []
+            for frame in all_frames:
+                duplicated_frames.extend([frame] * duplication_factor)
+            # Trim to exact count needed
+            frames = duplicated_frames[:TOTAL_FRAMES]
+        elif len(all_frames) >= TOTAL_FRAMES:
             logger.info(f"Sampling {TOTAL_FRAMES} frames from {len(all_frames)} available frames")
             indices = np.linspace(0, len(all_frames) - 1, TOTAL_FRAMES).astype(int)
             frames = [all_frames[i] for i in indices]
         else:
-            logger.info(f"Padding with {TOTAL_FRAMES - len(all_frames)} empty frames")
-            frames = all_frames + [np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)] * (TOTAL_FRAMES - len(all_frames))
+            # This should never happen due to earlier check, but just in case
+            logger.warning(f"No usable frames, padding with empty frames")
+            frames = [np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)] * TOTAL_FRAMES
+        
+        # Verify frames are valid
+        valid_frames = [f for f in frames if f is not None and f.size > 0 and f.shape[0] > 0 and f.shape[1] > 0]
+        if len(valid_frames) < TOTAL_FRAMES:
+            logger.warning(f"Some frames are invalid. Expected {TOTAL_FRAMES}, got {len(valid_frames)} valid frames")
+            # Fill in any missing frames with the last valid frame or a blank frame
+            replacement_frame = valid_frames[-1] if valid_frames else np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)
+            frames = valid_frames + [replacement_frame] * (TOTAL_FRAMES - len(valid_frames))
+        
+        # Ensure all frames have the correct dimensions
+        for i in range(len(frames)):
+            if frames[i].shape[:2] != (LIP_HEIGHT, LIP_WIDTH):
+                frames[i] = cv2.resize(frames[i], (LIP_WIDTH, LIP_HEIGHT))
         
         X = np.expand_dims(np.array(frames, dtype=np.float32) / 255.0, axis=0)
         
@@ -241,6 +333,7 @@ def predict_lipreading(video_path: str) -> Dict[str, object]:
             'processing_time': processing_time,
             'frames_processed': processed_frames,
             'faces_detected': faces_detected,
+            'frames_used': len(all_frames),
             'prediction_index': idx
         }
     except Exception as e:
