@@ -30,7 +30,7 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   private noLipsDetectedCount = 0;
   private readonly NO_LIPS_THRESHOLD = 10;
   
-  readonly REQUIRED_FRAMES = 30;
+  readonly REQUIRED_FRAMES = 75;
   currentFrameCount = 0;
   isFrameCollectionComplete = false;
   canvasWidth = 640;
@@ -396,16 +396,18 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
   }
 
   private predictVideo(file: File) {
+    console.log('Starting video prediction for file:', file.name, 'Size:', file.size);
     this.videoService.predictLipreading(file)
       .subscribe({
         next: ({ phrase, confidence }) => {
+          console.log('Prediction successful:', { phrase, confidence });
           this.predictedPhrase = phrase;
           this.predictionConfidence = confidence;
-          console.log(`Prediction confidence: ${confidence}`);
           this.isLoading = false;
           this.errorMessage = null;
         },
-        error: () => {
+        error: (error) => {
+          console.error('Prediction failed:', error);
           this.predictedPhrase = 'Prediction failed';
           this.predictionConfidence = null;
           this.isLoading = false;
