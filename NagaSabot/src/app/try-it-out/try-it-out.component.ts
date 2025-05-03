@@ -448,9 +448,14 @@ export class TryItOutComponent implements OnDestroy, AfterViewInit {
 
   updateCanvasSize = () => {
     if (this.videoElement && this.videoElement.nativeElement) {
-      const rect = this.videoElement.nativeElement.getBoundingClientRect();
-      this.canvasWidth = Math.floor(rect.width);
-      this.canvasHeight = Math.floor(rect.height);
+      const video = this.videoElement.nativeElement;
+      // Use the actual video pixel size for canvas
+      this.canvasWidth = video.videoWidth || 640;
+      this.canvasHeight = video.videoHeight || 480;
+      if (this.canvas && this.canvas.nativeElement) {
+        this.canvas.nativeElement.width = this.canvasWidth;
+        this.canvas.nativeElement.height = this.canvasHeight;
+      }
     }
   }
 }

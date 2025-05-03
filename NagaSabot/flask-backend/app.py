@@ -4,11 +4,10 @@ from werkzeug.utils import secure_filename # type: ignore
 import os
 from datetime import datetime
 import uuid
-from lipreading_model import predict_lipreading
-import tensorflow as tf
+from lipreading_model import predict_lipreading, load_model
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, origins=["https://nagasabot-frontend.onrender.com", "http://localhost:4200"])
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -22,8 +21,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'nagsabot_full_model_morecleaner4.keras')
-model = tf.keras.models.load_model(MODEL_PATH)
+model = load_model()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

@@ -110,8 +110,15 @@ def get_fixed_centered_lip_region(image: np.ndarray, face_landmarks) -> Tuple[np
         logger.error(f"Error in get_fixed_centered_lip_region: {e}")
         return np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8), 0, (0, 0, 0, 0), 0
 
-def predict_lipreading(video_path: str, model: tf.keras.Model) -> Dict[str, object]:
+def load_model():
+    """Load and return the trained Keras model for lipreading."""
+    MODEL_PATH = os.path.join(os.path.dirname(__file__), 'nagsabot_full_model_morecleaner4.keras')
+    return tf.keras.models.load_model(MODEL_PATH)
+
+def predict_lipreading(video_path: str, model=None) -> Dict[str, object]:
     """Run the full lipreading pipeline and return prediction. Now samples TOTAL_FRAMES evenly from all detected lip frames."""
+    if model is None:
+        model = load_model()
     cap = cv2.VideoCapture(video_path)
     all_frames = []
     with mp_face_mesh.FaceMesh(
@@ -153,7 +160,7 @@ def predict_lipreading(video_path: str, model: tf.keras.Model) -> Dict[str, obje
     return {'phrase': phrase, 'confidence': confidence}
 
 # Constants for the lip reading model
-NUM_FRAMES = 30  # Changed from 75 to 30 frames per sample
+NUM_FRAMES = 75  # Changed from 75 to 30 frames per sample
 HEIGHT = 80       # Height of the lip patch
 WIDTH = 112       # Width of the lip patch
 CHANNELS = 3      # RGB channels

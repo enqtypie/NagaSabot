@@ -181,16 +181,16 @@
         </div>
 
         <!-- camera preview -->
-        <div class="relative bg-black w-full aspect-[4/3] max-h-[60vw] sm:max-h-[360px] rounded-b-xl overflow-hidden">
+        <div class="relative bg-black w-full aspect-[4/3] rounded-b-xl overflow-hidden mx-auto">
           <video 
             #videoElement 
             autoplay 
             playsinline 
-            class="absolute top-0 left-0 w-full h-full object-cover -scale-x-100"
+            class="absolute top-0 left-0 w-full h-full object-contain -scale-x-100 rounded-lg"
           ></video>
 
           <canvas #canvas 
-                  class="absolute top-0 left-0 w-full h-full pointer-events-none rounded"
+                  class="absolute top-0 left-0 w-full h-full pointer-events-none rounded-lg"
                   [width]="canvasWidth"
                   [height]="canvasHeight">
           </canvas>
