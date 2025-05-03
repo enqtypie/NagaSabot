@@ -6,3 +6,4 @@ opencv-python
 tensorflow
 mediapipe
 requests
+gunicorn
