@@ -26,7 +26,21 @@ model = load_model()
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS", "HEAD"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With"]
+    }
+})
+
+# Add after_request handler to ensure CORS headers
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,HEAD')
+    return response
 
 # Config
 UPLOAD_FOLDER = 'uploads'
@@ -122,49 +136,134 @@ def get_fixed_centered_lip_region(image: np.ndarray, face_landmarks) -> Tuple[np
         return np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8), 0, (0, 0, 0, 0), 0
 
 def predict_lipreading(video_path: str) -> Dict[str, object]:
+    logger.info(f"Starting lip reading prediction for video: {video_path}")
+    start_time = datetime.now()
+    
+    # Validate video file exists
+    if not os.path.exists(video_path):
+        logger.error(f"Video file not found: {video_path}")
+        return {'error': 'Video file not found', 'phrase': 'Error', 'confidence': 0.0}
+    
+    # Get video info
+    file_size_mb = os.path.getsize(video_path) / (1024 * 1024)
+    logger.info(f"Video file size: {file_size_mb:.2f} MB")
+    
     cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        logger.error(f"Cannot open video file: {video_path}")
+        return {'error': 'Cannot open video file', 'phrase': 'Error', 'confidence': 0.0}
+    
+    # Get video metadata
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = frame_count / fps if fps > 0 else 0
+    
+    logger.info(f"Video info - FPS: {fps}, Frames: {frame_count}, Resolution: {video_width}x{video_height}, Duration: {duration:.2f}s")
+    
+    # Check if video is too short
+    if duration < 1.0:
+        logger.warning(f"Video is too short: {duration:.2f}s, need at least 1.0s")
+        return {'error': 'Video is too short', 'phrase': 'Too short', 'confidence': 0.0}
+    
     all_frames = []
-    with mp_face_mesh.FaceMesh(
-        max_num_faces=1,
-        refine_landmarks=True,
-        min_detection_confidence=0.7,
-        min_tracking_confidence=0.7
-    ) as face_mesh:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.flip(frame, 1)
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            result = face_mesh.process(rgb)
-            if result.multi_face_landmarks:
-                landmarks = result.multi_face_landmarks[0]
-                lip_region, *_ = get_fixed_centered_lip_region(frame, landmarks)
-                enhanced = enhance_lip_region(lip_region)
-                all_frames.append(enhanced)
-    cap.release()
-
-    if len(all_frames) >= TOTAL_FRAMES:
-        indices = np.linspace(0, len(all_frames) - 1, TOTAL_FRAMES).astype(int)
-        frames = [all_frames[i] for i in indices]
-    else:
-        frames = all_frames + [np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)] * (TOTAL_FRAMES - len(all_frames))
-
-    X = np.expand_dims(np.array(frames, dtype=np.float32) / 255.0, axis=0)
-    prediction = model.predict(X)[0]
-    idx = int(np.argmax(prediction))
-    phrase = BIKOL_NAGA_PHRASES[idx] if idx < len(BIKOL_NAGA_PHRASES) else f"Unknown ({idx})"
-    confidence = float(prediction[idx])
-    logger.info(f"Predicted: {phrase} (Confidence: {confidence})")
-    return {'phrase': phrase, 'confidence': confidence}
+    processed_frames = 0
+    faces_detected = 0
+    
+    try:
+        with mp_face_mesh.FaceMesh(
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.7,
+            min_tracking_confidence=0.7
+        ) as face_mesh:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                processed_frames += 1
+                if processed_frames % 10 == 0:
+                    logger.info(f"Processed {processed_frames}/{frame_count} frames...")
+                
+                frame = cv2.flip(frame, 1)
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                result = face_mesh.process(rgb)
+                
+                if result.multi_face_landmarks:
+                    faces_detected += 1
+                    landmarks = result.multi_face_landmarks[0]
+                    lip_region, *_ = get_fixed_centered_lip_region(frame, landmarks)
+                    enhanced = enhance_lip_region(lip_region)
+                    all_frames.append(enhanced)
+    except Exception as e:
+        logger.error(f"Error processing video frames: {str(e)}")
+        return {'error': f'Error processing video: {str(e)}', 'phrase': 'Error', 'confidence': 0.0}
+    finally:
+        cap.release()
+    
+    # Check if we found any frames with faces
+    if not all_frames:
+        logger.warning("No faces detected in the video")
+        return {'error': 'No faces detected in video', 'phrase': 'No face', 'confidence': 0.0}
+    
+    logger.info(f"Video processing stats - Processed frames: {processed_frames}, Frames with faces: {faces_detected}, Usable frames: {len(all_frames)}")
+    
+    # Prepare frames for model input
+    try:
+        if len(all_frames) >= TOTAL_FRAMES:
+            logger.info(f"Sampling {TOTAL_FRAMES} frames from {len(all_frames)} available frames")
+            indices = np.linspace(0, len(all_frames) - 1, TOTAL_FRAMES).astype(int)
+            frames = [all_frames[i] for i in indices]
+        else:
+            logger.info(f"Padding with {TOTAL_FRAMES - len(all_frames)} empty frames")
+            frames = all_frames + [np.zeros((LIP_HEIGHT, LIP_WIDTH, 3), dtype=np.uint8)] * (TOTAL_FRAMES - len(all_frames))
+        
+        X = np.expand_dims(np.array(frames, dtype=np.float32) / 255.0, axis=0)
+        
+        # Run prediction
+        logger.info("Running model prediction...")
+        prediction = model.predict(X)[0]
+        idx = int(np.argmax(prediction))
+        phrase = BIKOL_NAGA_PHRASES[idx] if idx < len(BIKOL_NAGA_PHRASES) else f"Unknown ({idx})"
+        confidence = float(prediction[idx])
+        
+        # Calculate time taken
+        end_time = datetime.now()
+        processing_time = (end_time - start_time).total_seconds()
+        
+        logger.info(f"Prediction complete - Phrase: '{phrase}', Confidence: {confidence:.4f}, Processing time: {processing_time:.2f}s")
+        
+        return {
+            'phrase': phrase, 
+            'confidence': confidence,
+            'processing_time': processing_time,
+            'frames_processed': processed_frames,
+            'faces_detected': faces_detected,
+            'prediction_index': idx
+        }
+    except Exception as e:
+        logger.error(f"Error during prediction: {str(e)}")
+        return {'error': f'Prediction error: {str(e)}', 'phrase': 'Error', 'confidence': 0.0}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/upload', methods=['POST', 'OPTIONS'])
+@app.route('/upload', methods=['GET', 'POST', 'OPTIONS'])
 def upload_video():
     if request.method == 'OPTIONS':
         return '', 204
+        
+    # Add support for GET requests
+    if request.method == 'GET':
+        return jsonify({
+            'message': 'This is the video upload endpoint. Please use POST method to upload a video file.',
+            'usage': 'Make a POST request with a video file in the "video" field of a multipart/form-data request.',
+            'example': 'curl -X POST -F "video=@your_video.mp4" https://nagasabot.onrender.com/upload',
+            'supported_formats': list(ALLOWED_EXTENSIONS)
+        }), 200
+        
     if 'video' not in request.files:
         return jsonify({'error': 'No video file provided'}), 400
 
@@ -206,12 +305,76 @@ def serve_video(filename):
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy'}), 200
+    try:
+        # Check if model is loaded
+        model_loaded = model is not None
+        
+        # Check if upload directory exists and is writable
+        upload_dir_exists = os.path.exists(UPLOAD_FOLDER)
+        upload_dir_writable = os.access(UPLOAD_FOLDER, os.W_OK)
+        
+        # Get number of files in upload directory
+        upload_files_count = len(os.listdir(UPLOAD_FOLDER)) if upload_dir_exists else 0
+        
+        # Get memory usage if psutil is available
+        memory_info = {}
+        try:
+            import psutil
+            process = psutil.Process(os.getpid())
+            memory_info = {
+                "memory_used_mb": round(process.memory_info().rss / 1024 / 1024, 2),
+                "memory_percent": round(process.memory_percent(), 2)
+            }
+        except ImportError:
+            memory_info = {"message": "psutil not available for memory stats"}
+            
+        return jsonify({
+            'status': 'healthy',
+            'server_time': datetime.now().isoformat(),
+            'model_loaded': model_loaded,
+            'upload_directory': {
+                'exists': upload_dir_exists,
+                'writable': upload_dir_writable,
+                'files_count': upload_files_count
+            },
+            'memory': memory_info,
+            'environment': os.environ.get('FLASK_ENV', 'production'),
+            'supported_formats': list(ALLOWED_EXTENSIONS)
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
 
-@app.route('/predict', methods=['POST', 'OPTIONS'])
+@app.route('/test', methods=['GET'])
+def test_endpoint():
+    """Simple test endpoint to verify API is working"""
+    return jsonify({
+        'message': 'API is working!',
+        'time': datetime.now().isoformat(),
+        'endpoints': {
+            'health': '/health - GET request to check server health',
+            'predict': '/predict - POST request to predict from video',
+            'upload': '/upload - POST request to upload and process video',
+            'get_video': '/uploads/<filename> - GET request to retrieve a video'
+        }
+    })
+
+@app.route('/predict', methods=['GET', 'POST', 'OPTIONS'])
 def predict():
     if request.method == 'OPTIONS':
         return '', 204
+    
+    # Add support for GET requests
+    if request.method == 'GET':
+        return jsonify({
+            'message': 'This is the prediction endpoint. Please use POST method to upload a video file.',
+            'usage': 'Make a POST request with a video file in the "file" field of a multipart/form-data request.',
+            'example': 'curl -X POST -F "file=@your_video.mp4" https://nagasabot.onrender.com/predict',
+            'supported_formats': list(ALLOWED_EXTENSIONS)
+        }), 200
+        
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
     file = request.files['file']
