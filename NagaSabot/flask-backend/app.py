@@ -1,3 +1,4 @@
+#for render deploymentzzzzs
 from flask import Flask, request, jsonify, send_from_directory  # type: ignore
 from flask_cors import CORS  # type: ignore
 from werkzeug.utils import secure_filename  # type: ignore
